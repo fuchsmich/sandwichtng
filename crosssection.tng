@@ -1,4 +1,4 @@
---[[Functions for CS-Values
+﻿--[[Functions for CS-Values
     (c) Michael Fuchs 2013]]--
 
 function h__tot(h)
@@ -44,5 +44,11 @@ function y__s(hb, fac)
   
   y_s = y_s:CW() - y_tots
   return y_s
+end
+
+function deadLoad(hb, rho)
+--   dead load in [N/m]
+  local g=9.81 -- [m/s²]
+  return (rho:Transpose()*A(hb))[0]*g
 end
 

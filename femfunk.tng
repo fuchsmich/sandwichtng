@@ -1,4 +1,4 @@
---[[
+ï»¿--[[
 beam system for shear analogy method
 (c) 2012 Michael Fuchs michfu@gmx.at
 --]]
@@ -100,7 +100,7 @@ end
 
 function addMaterial(struct, hb, moe, mos)
   -- add material
-  local E_cal = 1e10 -- [N/m²]
+  local E_cal = 1e10 -- [N/mÂ²]
   local nu_cal = 0.2
   local G_cal = E_cal/2/(1+nu_cal)
   local calProp = tmath.Matrix({{E_cal, G_cal}})
@@ -115,15 +115,9 @@ function addMaterial(struct, hb, moe, mos)
   ss:SetData(secPropB(hb, moe, mos, calProp))
 end
 
-function dead_load(hb, rho)
---   dead load in [N/m]
-  local g=9.81 -- [m/s²]
-  return (rho:Transpose()*A(hb))[0]*g
-end
-
 function getStresses(struct, hb, l, moe, mos)
   -- returns matrix of stresses
-  -- rows = n° of layers
+  -- rows = nÂ° of layers
   -- cols = sig_top, sig_bottom, tau(z_i=0), tau(z_i=h_i/2), tau(z_i=h_i),
 
   local nol = hb:Rows()
@@ -164,7 +158,7 @@ function getStresses(struct, hb, l, moe, mos)
     sig[{i,2}] = t0
     sig[{i,3}] = ta + tb/2 +t0
     sig[{i,4}] = tb +t0
-	-- Kontrollwert für Parabel:
+	-- Kontrollwert fÃ¼r Parabel:
     sig[{i,5}] = - Q_max_A*moe[i]/eia*((-h[i]/4)^2/2-h[i]^2/8) - Q_max_B*moe[i]/eib*y_s[i]*((-h[i]/4) + h[i]/2) +t0
     t0 = sig[{i,4}]
   end
@@ -205,8 +199,8 @@ function calcStructure(hb, l, moe, mos, rho, dlf, q, Fx)
   struct:AddConstraints(createConstraints(noe))
 
 -- apply load to nodes
-  local var_load = q --N/m²
-  local node_load = (dead_load(hb, rho)*dlf + var_load)*l/noe
+  local var_load = q --N/mÂ²
+  local node_load = (deadLoad(hb, rho)*dlf + var_load)*l/noe
   
   local K=struct:SparseStiffness()
   local F1=struct:GetAllDisplacements()

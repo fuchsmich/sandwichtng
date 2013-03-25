@@ -1,4 +1,4 @@
---[[ (c) Michael Fuchs 2013
+ï»¿--[[ (c) Michael Fuchs 2013
     Gamma-Verfahren zusammengesetzte Querschnitte ]]--
 
 dofile("crosssection.tng")
@@ -16,32 +16,67 @@ end
 function jointStiff(hb, mos)
   local h = hb:GetCols(0)
   local b = hb:GetCols(1)
-  return (mos:CW()*h):CW()/b
+  return (mos:CW()*b):CW()/h
 end
 
 function EIeff(hb, moe, c_F, l)
+  local moe12 = tmath.Matrix({moe:GetRows(0), moe:GetRows(2)})
   local hb12 = tmath.Matrix({hb:GetRows(0), hb:GetRows(2)})
-  local EI12, SteinerAnt = MOI(hb12, moe)
-  local gamma = gamma(hb12, moe, c_F[0], l)
-  print("gamma: ", gamma)
+  local EI12, SteinerAnt = MOI(hb12, moe12)
+  local gamma = gamma(hb12, moe12, c_F[0], l)
   local A12 = A(hb12)
   local a_tot = a__tot(hb:GetCols(0))
-  print("a_tot", a_tot) 
-  local a_two = gamma[0]*moe[0]*A12[0]*a_tot/tmath.Sum((gamma:CW()*moe):CW()*A12)
+  local a_two = gamma[0]*moe12[0]*A12[0]*a_tot/tmath.Sum((gamma:CW()*moe12):CW()*A12)
   local a = tmath.Matrix({{a_tot - a_two}, {a_two}})
-  print("a", a) 
-  print(tmath.Sum(EI12))
-  return tmath.Sum(EI12) + tmath.Sum(((gamma:CW()*moe):CW()*A12):CW()*a:CW()^2)
+  local EI_eff = tmath.Sum(EI12) + tmath.Sum(((gamma:CW()*moe12):CW()*A12):CW()*a:CW()^2)
+  return EI_eff, a, gamma
 end
 
-function calcGammaStructure(hb, l, moe, mos, rho, dlf, q, Fx)
+function w_distload(q, l, EI)
+  return 5*q*l^4/(384*EI)
+end
+
+function w_single(P, l, EI)
+  return P*l^3/(48*EI)
+end
+
+function normalStresses(M, hb, moe, c_F, l)
+  local moe12 = tmath.Matrix({moe:GetRows(0), moe:GetRows(2)})
+  local hb12 = tmath.Matrix({hb:GetRows(0), hb:GetRows(2)})
+  local EI_eff, a, gamma = EIeff(hb, moe, c_F, l)
+  local sig1n = gamma[0]*moe12[0]*a[0]*M/EI_eff
+  local sig2n = gamma[1]*moe12[1]*a[1]*M/EI_eff
+  local sig1m = moe12[0]*hb12[{0,0}]/2*M/EI_eff
+  local sig2m = moe12[1]*hb12[{1,0}]/2*M/EI_eff
+  local sig = tmath.Matrix(2, 3)
+  -- normal stress
+  sig[{0,0}] = -sig1n - sig1m
+  sig[{0,1}] = -sig1n
+  sig[{0,2}] = -sig1n + sig1m
+  sig[{1,0}] = sig2n - sig2m
+  sig[{1,1}] = sig2n
+  sig[{1,2}] = sig2n + sig2m
+ 
+  return sig
+end
+
+function shearStresses(V, hb, moe, c_F, l)
+  local moe12 = tmath.Matrix({moe:GetRows(0), moe:GetRows(2)})
+  local hb12 = tmath.Matrix({hb:GetRows(0), hb:GetRows(2)})
+  local EI_eff, a, gamma = EIeff(hb, moe, c_F, l)
+
+  local tau = tmath.Matrix(3)
   
+  tau[{0,0}] = gamma[0]*moe[0]*hb12[{0,0}]*hb12[{0,1}]*a[0]/(EI_eff*hb[{0,1}])*V
+  tau[{1,0}] = gamma[0]*moe[0]*hb12[{0,0}]*hb12[{0,1}]*a[0]/(EI_eff*hb[{1,1}])*V
+  tau[{2,0}] = 0.5*moe12[1]*(hb12[{1,0}]/2 + a[1])^2/EI_eff*V
+  
+  return tau
 end
-
 -- main starts here --------------------
 
 -- HLB Sandwich-Querschnitt ================
-moe = tmath.Matrix({{19560e6}, {11600e6}}) -- MoE [N/m²]
+moe = tmath.Matrix({{19560e6}, {0}, {11600e6}}) -- MoE [N/mÂ²]
 b = 50e-2 -- width of beam
 hb = tmath.Matrix({{6e-2, b}, {15e-2, b}, {11.8e-2, b}}) -- height of Layers 1 and 2
 l = 7.2
@@ -51,12 +86,19 @@ mos_F = tmath.Matrix({{15e6}}) --mos of joint
 c_F = jointStiff(hb:GetRows(1), mos_F)
 -- print("c_F", c_F)
 print("EIeff", EIeff(hb, moe, c_F, l))
+
+rho = tmath.Matrix({{2400}, {750}, {470}}) --density [kg/mÂ³]
+q = 3
+M = (deadLoad(hb, rho) + q)*l^2/8
+V = (deadLoad(hb, rho) + q)*l/2
+print("stresses", normalStresses(M, hb, moe, c_F, l))
+print("shear stresses", shearStresses(V, hb, moe, c_F, l))
 -- HLB Sandwich-Querschnitt ================
 
 
 -- Berechnungsbeispiel TU Graz
-moe = tmath.Matrix({{12000e6}, {12000e6}}) -- MoE [N/m²]
-hb = tmath.Matrix({{60e-3, 180e-3}, {0,0}, {240e-3, 80e-3}}) -- height of Layers 1 and 2
+moe = tmath.Matrix({{12000e6}, {0}, {12000e6}}) -- MoE [N/mÂ²]
+hb = tmath.Matrix({{60e-3, 180e-3}, {0, 80e-3}, {240e-3, 80e-3}}) -- height of Layers 1 and 2
 l = 4.5 --length of beam
 
 K_u = 2341e3    --modulus of displacement [N/m]
@@ -64,8 +106,10 @@ s_eff = 43.75e-3  --effective distance of screws
 
 c_F = tmath.Matrix({{K_u/s_eff}}) --Fugensteifigkeit
 
-print("EIeff", EIeff(hb, moe, c_F, l)) --Lösung: 2,21e6 Nm²
+print("EIeff", EIeff(hb, moe, c_F, l)) --LÃ¶sung: 2,21e6 NmÂ²
 
-
-
+M = 16.45e3
+V = 14.6e3
+print("stresses", normalStresses(M, hb, moe, c_F, l))
+print("shear stresses", shearStresses(V, hb, moe, c_F, l))
 
