@@ -3,17 +3,7 @@ beam system for shear analogy method
 (c) 2012 Michael Fuchs michfu@gmx.at
 --]]
 
-
-function h__tot(h)
---   total height of cross section
-  local i = tmath.Matrix(h:Rows())
-  i:SetLinearRows(1,1)
-  return (h:Transpose()*i)[0]
-end
-
-function A(hb)
-  return hb:GetCols(0):CW()*hb:GetCols(1)
-end
+dofile("crosssection.tng")
 
 function createNodes(l, noe)
   local dx = l/noe
@@ -70,7 +60,7 @@ end
 
 function secPropA(hb, moe, mos, calProp)
 --   calculates properties for section A
-  local eaa, gaa, eia = stiffA(hb, moe, mos)
+  local eaa, gaa, eia = stiffA(hb, moe, mos) --sollte eigentlich in eigene section C
   local A_x = eaa/calProp[0]*0.01  --can be 0
   local A_y = gaa/calProp[1] --can be oo
   local A_z = A_y
@@ -80,21 +70,6 @@ function secPropA(hb, moe, mos, calProp)
   return tmath.Matrix({{A_x, A_y, A_z, I_x, I_y, I_z}})
 end
 
-
-function y__s(hb, fac)
---   calculates centerline of gravity due to factor fac (in this case moe)
-  local n = hb:Rows()
-  local h = hb:GetCols(0)
-  local y = tmath.Matrix(n,1)
-  for i = 0,n - 1 do
-    y[i] = h[i]/2
-    if i > 0 then y[i] = y[i] + y[i-1] + h[i-1]/2 end
-  end
-  y_tots = (fac:Transpose()*(A(hb):CW()*y)/(fac:Transpose()*A(hb))[0])[0]
-  
-  y = y:CW() - y_tots
-  return y
-end
 
 function stiffB(hb, moe, mos)
   -- returns stiffnesses of beam b
@@ -141,6 +116,7 @@ function addMaterial(struct, hb, moe, mos)
 end
 
 function dead_load(hb, rho)
+--   dead load in [N/m]
   local g=9.81 -- [m/s²]
   return (rho:Transpose()*A(hb))[0]*g
 end
@@ -223,7 +199,7 @@ function calcStructure(hb, l, moe, mos, rho, dlf, q, Fx)
   struct:AddElements("BEAM3D", 1, 12, el_b)
 
 -- Find global DOFs and assemble stiffness
-  local nd=struct:GlobalDof()
+  local nd=struct:GlobalDof()http://info.tuwien.ac.at/bucher/Private/slangTNG.html
   
 --   add constraints between beam a and b
   struct:AddConstraints(createConstraints(noe))

@@ -1,0 +1,48 @@
+--[[Functions for CS-Values
+    (c) Michael Fuchs 2013]]--
+
+function h__tot(h)
+--   total height of cross section
+  return tmath.Sum(h)
+end
+
+function a__tot(h)
+  return h__tot(h) - h[0]/2 - h[h:Rows()-1]/2
+end
+
+function A__tot(hb)
+  --calcs total Area of rectangular crosssections
+  return tmath.Sum(A(hb))
+end
+
+function A(hb)
+--   returns array of areas of crossections
+  return hb:GetCols(0):CW()*hb:GetCols(1)
+end
+
+function MOI(hb, fac)
+  local h = hb:GetCols(0)
+  local b = hb:GetCols(1)
+  local y_s = y__s(hb, fac)
+  
+  local MOIi = (fac:CW()*b):CW()*h:CW()^3/12
+  local Steiner = (fac:CW()*A(hb)):CW()*y_s:CW()^2
+--   local eib = ((moe:CW()*A(hb)):Transpose()*(y_s:CW()^2))[0]
+  return MOIi, Steiner
+end
+
+function y__s(hb, fac)
+--   calculates centerline of gravity due to factor fac (in this case moe)
+  local n = hb:Rows()
+  local h = hb:GetCols(0)
+  local y_s = tmath.Matrix(n,1)
+  for i = 0,n - 1 do
+    y_s[i] = h[i]/2
+    if i > 0 then y_s[i] = y_s[i] + y_s[i-1] + h[i-1]/2 end
+  end
+  local y_tots = (fac:Transpose()*(A(hb):CW()*y_s)/(fac:Transpose()*A(hb))[0])[0]
+  
+  y_s = y_s:CW() - y_tots
+  return y_s
+end
+

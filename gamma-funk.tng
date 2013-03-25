@@ -1,0 +1,71 @@
+--[[ (c) Michael Fuchs 2013
+    Gamma-Verfahren zusammengesetzte Querschnitte ]]--
+
+dofile("crosssection.tng")
+
+
+function gamma(hb, moe, cf, l)
+  local gamma = tmath.Matrix(2)
+  local E1 = moe[0]
+  local A1 = A(hb)[0]
+  gamma[0] = 1/(1+ math.pi^2*E1*A1/(cf*l^2))
+  gamma[1] = 1
+  return gamma
+end
+
+function jointStiff(hb, mos)
+  local h = hb:GetCols(0)
+  local b = hb:GetCols(1)
+  return (mos:CW()*h):CW()/b
+end
+
+function EIeff(hb, moe, c_F, l)
+  local hb12 = tmath.Matrix({hb:GetRows(0), hb:GetRows(2)})
+  local EI12, SteinerAnt = MOI(hb12, moe)
+  local gamma = gamma(hb12, moe, c_F[0], l)
+  print("gamma: ", gamma)
+  local A12 = A(hb12)
+  local a_tot = a__tot(hb:GetCols(0))
+  print("a_tot", a_tot) 
+  local a_two = gamma[0]*moe[0]*A12[0]*a_tot/tmath.Sum((gamma:CW()*moe):CW()*A12)
+  local a = tmath.Matrix({{a_tot - a_two}, {a_two}})
+  print("a", a) 
+  print(tmath.Sum(EI12))
+  return tmath.Sum(EI12) + tmath.Sum(((gamma:CW()*moe):CW()*A12):CW()*a:CW()^2)
+end
+
+function calcGammaStructure(hb, l, moe, mos, rho, dlf, q, Fx)
+  
+end
+
+-- main starts here --------------------
+
+-- HLB Sandwich-Querschnitt ================
+moe = tmath.Matrix({{19560e6}, {11600e6}}) -- MoE [N/m²]
+b = 50e-2 -- width of beam
+hb = tmath.Matrix({{6e-2, b}, {15e-2, b}, {11.8e-2, b}}) -- height of Layers 1 and 2
+l = 7.2
+
+-- Fuge
+mos_F = tmath.Matrix({{15e6}}) --mos of joint
+c_F = jointStiff(hb:GetRows(1), mos_F)
+-- print("c_F", c_F)
+print("EIeff", EIeff(hb, moe, c_F, l))
+-- HLB Sandwich-Querschnitt ================
+
+
+-- Berechnungsbeispiel TU Graz
+moe = tmath.Matrix({{12000e6}, {12000e6}}) -- MoE [N/m²]
+hb = tmath.Matrix({{60e-3, 180e-3}, {0,0}, {240e-3, 80e-3}}) -- height of Layers 1 and 2
+l = 4.5 --length of beam
+
+K_u = 2341e3    --modulus of displacement [N/m]
+s_eff = 43.75e-3  --effective distance of screws
+
+c_F = tmath.Matrix({{K_u/s_eff}}) --Fugensteifigkeit
+
+print("EIeff", EIeff(hb, moe, c_F, l)) --Lösung: 2,21e6 Nm²
+
+
+
+
