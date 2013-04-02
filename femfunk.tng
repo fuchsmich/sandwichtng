@@ -1,4 +1,4 @@
-﻿--[[
+--[[
 beam system for shear analogy method
 (c) 2012 Michael Fuchs michfu@gmx.at
 --]]
@@ -193,7 +193,7 @@ function calcStructure(hb, l, moe, mos, rho, dlf, q, Fx)
   struct:AddElements("BEAM3D", 1, 12, el_b)
 
 -- Find global DOFs and assemble stiffness
-  local nd=struct:GlobalDof()http://info.tuwien.ac.at/bucher/Private/slangTNG.html
+  local nd=struct:GlobalDof()
   
 --   add constraints between beam a and b
   struct:AddConstraints(createConstraints(noe))

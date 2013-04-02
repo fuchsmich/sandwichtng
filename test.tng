@@ -1,0 +1,12 @@
+dofile("crosssection.tng")
+
+b = 0.42
+hb = tmath.Matrix({{6.8e-2, b}, {7.5e-2, b}, {5.7e-2, b}})
+moe = tmath.Matrix({{19560e6}, {1000e6}, {11600e6}}) -- MoE [N/m²]
+
+print(hb:GetCols(0):CW()*moe)
+
+print(A(hb), A__tot(hb), tmath.Sum(A(hb)))
+
+print(tmath.Sum(MOI(hb, moe):GetCols(0)))
+

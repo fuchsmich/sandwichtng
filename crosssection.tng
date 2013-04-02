@@ -1,4 +1,4 @@
-﻿--[[Functions for CS-Values
+--[[Functions for CS-Values
     (c) Michael Fuchs 2013]]--
 
 function h__tot(h)
