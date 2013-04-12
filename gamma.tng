@@ -1,4 +1,4 @@
-﻿--[[ (c) Michael Fuchs 2013
+--[[ (c) Michael Fuchs 2013
     Gamma-Verfahren zusammengesetzte Querschnitte ]]--
 
 dofile("crosssection.tng")
@@ -19,7 +19,7 @@ function jointStiff(hb, mos)
   return (mos:CW()*b):CW()/h
 end
 
-function EIeff(hb, moe, c_F, l)
+function gammaParameters(layers, joints, l)
   local moe12 = tmath.Matrix({moe:GetRows(0), moe:GetRows(2)})
   local hb12 = tmath.Matrix({hb:GetRows(0), hb:GetRows(2)})
   local EI12, SteinerAnt = MOI(hb12, moe12)
@@ -29,6 +29,7 @@ function EIeff(hb, moe, c_F, l)
   local a_two = gamma[0]*moe12[0]*A12[0]*a_tot/tmath.Sum((gamma:CW()*moe12):CW()*A12)
   local a = tmath.Matrix({{a_tot - a_two}, {a_two}})
   local EI_eff = tmath.Sum(EI12) + tmath.Sum(((gamma:CW()*moe12):CW()*A12):CW()*a:CW()^2)
+  local EI_eff = tmath.Sum(EI12) + a_tot^2*gamma[0]*moe12[0]*A12[0]*moe12[1]*A12[1]/(gamma[0]*moe12[0]*A12[0]+moe12[1]*A12[1])
   return EI_eff, a, gamma
 end
 
@@ -43,7 +44,7 @@ end
 function normalStresses(M, hb, moe, c_F, l)
   local moe12 = tmath.Matrix({moe:GetRows(0), moe:GetRows(2)})
   local hb12 = tmath.Matrix({hb:GetRows(0), hb:GetRows(2)})
-  local EI_eff, a, gamma = EIeff(hb, moe, c_F, l)
+  local EI_eff, a, gamma = gammaParameters(hb, moe, c_F, l)
   local sig1n = gamma[0]*moe12[0]*a[0]*M/EI_eff
   local sig2n = gamma[1]*moe12[1]*a[1]*M/EI_eff
   local sig1m = moe12[0]*hb12[{0,0}]/2*M/EI_eff
@@ -63,7 +64,7 @@ end
 function shearStresses(V, hb, moe, c_F, l)
   local moe12 = tmath.Matrix({moe:GetRows(0), moe:GetRows(2)})
   local hb12 = tmath.Matrix({hb:GetRows(0), hb:GetRows(2)})
-  local EI_eff, a, gamma = EIeff(hb, moe, c_F, l)
+  local EI_eff, a, gamma = gammaParameters(hb, moe, c_F, l)
 
   local tau = tmath.Matrix(3)
   
@@ -74,42 +75,41 @@ function shearStresses(V, hb, moe, c_F, l)
   return tau
 end
 -- main starts here --------------------
-
+hb = tmath.Matrix({{6e-2, b}, {15e-2, b}, {11.8e-2, b}})
 -- HLB Sandwich-Querschnitt ================
-moe = tmath.Matrix({{19560e6}, {0}, {11600e6}}) -- MoE [N/m²]
 b = 50e-2 -- width of beam
-hb = tmath.Matrix({{6e-2, b}, {15e-2, b}, {11.8e-2, b}}) -- height of Layers 1 and 2
 l = 7.2
-
+layers = tmath.Matrix({{hb:GetRows(0), 19560e6},
+					   {hb:GetRows(2), 11600e6}})
 -- Fuge
-mos_F = tmath.Matrix({{15e6}}) --mos of joint
-c_F = jointStiff(hb:GetRows(1), mos_F)
--- print("c_F", c_F)
-print("EIeff", EIeff(hb, moe, c_F, l))
+mos_F = 15e6 --mos of joint
+c_F = mos_F*b/hb[{1,0}]
+joints = tmath.Matrix({{hb:GetRows(1), c_F}})
 
 rho = tmath.Matrix({{2400}, {750}, {470}}) --density [kg/m³]
-q = 3
-M = (deadLoad(hb, rho) + q)*l^2/8
-V = (deadLoad(hb, rho) + q)*l/2
+q = 3000 --[N/m²]
+
+M = (deadLoad(hb, rho) + q*b)*l^2/8
+V = (deadLoad(hb, rho) + q*b)*l/2
 print("stresses", normalStresses(M, hb, moe, c_F, l))
 print("shear stresses", shearStresses(V, hb, moe, c_F, l))
 -- HLB Sandwich-Querschnitt ================
 
 
 -- Berechnungsbeispiel TU Graz
-moe = tmath.Matrix({{12000e6}, {0}, {12000e6}}) -- MoE [N/m²]
-hb = tmath.Matrix({{60e-3, 180e-3}, {0, 80e-3}, {240e-3, 80e-3}}) -- height of Layers 1 and 2
-l = 4.5 --length of beam
+-- moe = tmath.Matrix({{12000e6}, {0}, {12000e6}}) -- MoE [N/m²]
+-- hb = tmath.Matrix({{60e-3, 180e-3}, {0, 80e-3}, {240e-3, 80e-3}}) -- height of Layers 1 and 2
+-- l = 4.5 --length of beam
 
-K_u = 2341e3    --modulus of displacement [N/m]
-s_eff = 43.75e-3  --effective distance of screws
+-- K_u = 2341e3    --modulus of displacement [N/m]
+-- s_eff = 43.75e-3  --effective distance of screws
 
-c_F = tmath.Matrix({{K_u/s_eff}}) --Fugensteifigkeit
+-- c_F = tmath.Matrix({{K_u/s_eff}}) --Fugensteifigkeit
 
-print("EIeff", EIeff(hb, moe, c_F, l)) --Lösung: 2,21e6 Nm²
+-- print("EIeff", gammaParameters(hb, moe, c_F, l)) --Lösung: 2,21e6 Nm²
 
-M = 16.45e3
-V = 14.6e3
-print("stresses", normalStresses(M, hb, moe, c_F, l))
-print("shear stresses", shearStresses(V, hb, moe, c_F, l))
+-- M = 16.45e3
+-- V = 14.6e3
+-- print("stresses", normalStresses(M, hb, moe, c_F, l))
+-- print("shear stresses", shearStresses(V, hb, moe, c_F, l))
 

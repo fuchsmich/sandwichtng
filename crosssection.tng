@@ -21,6 +21,7 @@ function A(hb)
 end
 
 function MOI(hb, fac)
+ -- returns MOI and Steiner term for each part of crosssection
   local h = hb:GetCols(0)
   local b = hb:GetCols(1)
   local y_s = y__s(hb, fac)
