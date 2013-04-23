@@ -2,11 +2,17 @@
   dofile("fem.tng")
   
   function printResults(u, sig)
-    print("u_max", u*1000 .. " mm")
+	print("Ergebnisse:\n")
+    print(string.format("u_max = %.3f mm", u))
     -- print("sig: ", sig/1e6)
 	for i = 0, hb:Rows()-1 do
-		print("sig_"..(i+1)..",o: ", sig[{i,0}]/1e6 .. " N/mm²")
-		print("sig_"..(i+1)..",u: ", sig[{i,1}]/1e6 .. " N/mm²")
+		print(string.format("sig_"..(i+1)..",o = %.3f N/mm²", sig[{i,0}]/1e6))
+		print(string.format("sig_"..(i+1)..",u = %.3f N/mm²", sig[{i,1}]/1e6))
+	end
+	for i = 0, hb:Rows()-1 do
+		print(string.format("tau_"..(i+1)..",o = %.3f N/mm²", sig[{i,2}]/1e6))
+		print(string.format("tau_"..(i+1)..",m = %.3f N/mm²", sig[{i,3}]/1e6))
+		print(string.format("tau_"..(i+1)..",u = %.3f N/mm²", sig[{i,4}]/1e6))
 	end
   end
   
@@ -93,6 +99,11 @@ q = 3e3 -- variable load [N/m²]
 dl_factor = 1 -- factor for dead load
 Fx = tmath.Matrix({{0, 0}}) -- single load at F[{i,0}]*l of magnitude F[{i,1}]
 -- Probekörper für Bauteilversuche ===============================================
+-- zur Kontrolle:
+ea, ga, ei = stiffA(hb, moe, mos)
+print(string.format("EA_a = %.0f N\nGA_a = %.0f N\nEI_a = %.0f N*m²", stiffA(hb, moe, mos)))
+print(string.format("EA_b = %.0f N\nGA_b = %.0f N\nEI_b = %.0f N*m²\n", stiffB(hb, moe, mos)))
+
 
 -- ==== Berechnung und Ausgabe =================
 startCalculation()

@@ -85,7 +85,6 @@ function stiffB(hb, moe, mos)
   den[0] = 2*den[0]
   den[n-1] = 2*den[n-1]
   den = den:CW()^(-1)
-  print(den)
   -- ersatz shear stiffness
   local ga = a__tot(h)^2/(h:Transpose()*(den))[0]
   return 0, ga, ei
@@ -207,9 +206,6 @@ function calcStructure(hb, l, moe, mos, rho, dlf, q, Fx)
 -- apply load to nodes
   local var_load = q*hb[{0,1}] --N/m
   local node_load = (deadLoad(hb, rho)*dlf + var_load)*l/noe
-  
-  print("dead load", deadLoad(hb, rho) .. " N/m")
-  print("node load", node_load .. " N")
   
   local K=struct:SparseStiffness()
   local F1=struct:GetAllDisplacements()
