@@ -51,7 +51,8 @@ end
 
 function stiffA(hb, moe, mos)
   local eaa = (moe:Transpose()*A(hb))[0]
-  local gaa = (mos:Transpose()*A(hb)*5/6)[0]
+  -- local gaa = (mos:Transpose()*A(hb)*5/6)[0]
+  local gaa = (mos:Transpose()*A(hb))[0]
   local h = hb:GetCols(0)
   local b = hb:GetCols(1)
   local eia = ((moe:CW()*b):Transpose()*((h:CW()^3)/12))[0]
@@ -75,14 +76,19 @@ function stiffB(hb, moe, mos)
   -- returns stiffnesses of beam b
   local n = hb:Rows()
   local h = hb:GetCols(0)
+  local b = hb:GetCols(1)
   local y_s = y__s(hb, moe)
-  local a = h__tot(h) - h[0]/2 - h[n-1]/2
-  local eib = ((moe:CW()*A(hb)):Transpose()*(y_s:CW()^2))[0]
-  mos[0] = 2*mos[0]
-  mos[n-1] = 2*mos[n-1]
-  mos = mos:CW()^(-1)
-  local gab = a^2/(A(hb):Transpose()*mos)[0]
-  return 0, gab, eib
+  local ei = ((moe:CW()*A(hb)):Transpose()*(y_s:CW()^2))[0]
+  -- denominator for ersatz shear stiffness
+  den = mos:CW()*b
+  --first and last layer times 2
+  den[0] = 2*den[0]
+  den[n-1] = 2*den[n-1]
+  den = den:CW()^(-1)
+  print(den)
+  -- ersatz shear stiffness
+  local ga = a__tot(h)^2/(h:Transpose()*(den))[0]
+  return 0, ga, ei
 end
 
 function secPropB(hb, moe, mos, calProp)
@@ -199,8 +205,11 @@ function calcStructure(hb, l, moe, mos, rho, dlf, q, Fx)
   struct:AddConstraints(createConstraints(noe))
 
 -- apply load to nodes
-  local var_load = q --N/m²
+  local var_load = q*hb[{0,1}] --N/m
   local node_load = (deadLoad(hb, rho)*dlf + var_load)*l/noe
+  
+  print("dead load", deadLoad(hb, rho) .. " N/m")
+  print("node load", node_load .. " N")
   
   local K=struct:SparseStiffness()
   local F1=struct:GetAllDisplacements()
@@ -209,10 +218,10 @@ function calcStructure(hb, l, moe, mos, rho, dlf, q, Fx)
   end
   
   -- single loads
-  for i = 0, Fx:Rows()-1 do
-    local nr = math.floor(Fx[{i,0}]*noe + .5)
-	F1[{nr,1}] = F1[{nr,1}] - Fx[{i,1}]
-  end
+  -- for i = 0, Fx:Rows()-1 do
+    -- local nr = math.floor(Fx[{i,0}]*noe + .5)
+	-- F1[{nr,1}] = F1[{nr,1}] - Fx[{i,1}]
+  -- end
   
   local F =  struct:ToDofDisplacements(F1)
 
