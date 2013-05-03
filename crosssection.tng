@@ -24,27 +24,27 @@ function MOI(hb, fac)
  -- returns MOI and Steiner term for each part of crosssection
   local h = hb:GetCols(0)
   local b = hb:GetCols(1)
-  local y_s = y__s(hb, fac)
+  local z_s = z__s(hb, fac)
   
   local MOIi = (fac:CW()*b):CW()*h:CW()^3/12
-  local Steiner = (fac:CW()*A(hb)):CW()*y_s:CW()^2
---   local eib = ((moe:CW()*A(hb)):Transpose()*(y_s:CW()^2))[0]
+  local Steiner = (fac:CW()*A(hb)):CW()*z_s:CW()^2
+--   local eib = ((moe:CW()*A(hb)):Transpose()*(z_s:CW()^2))[0]
   return MOIi, Steiner
 end
 
-function y__s(hb, fac)
+function z__s(hb, fac)
 --   calculates centerline of gravity due to factor fac (in this case moe)
   local n = hb:Rows()
   local h = hb:GetCols(0)
-  local y_s = tmath.Matrix(n,1)
+  local z_s = tmath.Matrix(n,1)
   for i = 0,n - 1 do
-    y_s[i] = h[i]/2
-    if i > 0 then y_s[i] = y_s[i] + y_s[i-1] + h[i-1]/2 end
+    z_s[i] = h[i]/2
+    if i > 0 then z_s[i] = z_s[i] + z_s[i-1] + h[i-1]/2 end
   end
-  local y_tots = (fac:Transpose()*(A(hb):CW()*y_s)/(fac:Transpose()*A(hb))[0])[0]
+  local z_tots = (fac:Transpose()*(A(hb):CW()*z_s)/(fac:Transpose()*A(hb))[0])[0]
   
-  y_s = y_s:CW() - y_tots
-  return y_s
+  z_s = z_s:CW() - z_tots
+  return z_s
 end
 
 function deadLoad(hb, rho)
