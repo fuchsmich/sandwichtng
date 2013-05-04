@@ -16,13 +16,82 @@ beam system for shear analogy method
 
 dofile("crosssection.tng")
 
+-- ====================== init the structure ====================== 
+function SA_init(l, noe)
+	SA_calcSystem = false
+	
+	if l ~= nil then SA_l = l
+		else SA_l = 7.2 
+	end
+	if noe ~= nil then noe = SA_noe
+		else SA_noe = 30
+	end
+	
+	SA_refnnr = 1
+	
+-- 	SA_nodes = createNodes()
+	SA_nodes = tmath.Matrix({{SA_refnnr, 0, 1, 0}}):AppendRows(createNodes())
+	SA_elementsA, SA_elementsB = createElements()
+	SA_constraints = createConstraints()
+	
+	SA_struct = fem.Structure("Shear Analogy")
+	
+-- 	SA_nodes = tmath.Matrix({{SA_refnnr, 0, 1, 0}}):AppendCol
+-- 	SA_struct:AddNodes(refnode)
+
+	SA_struct:AddNodes(SA_nodes)
+	setSupports()
+end
+
+
+function setLayers(layers, joints)
+-- layer array of {thick, width, moe, mos, rho}
+-- layer joints of {thick, width, k_ser}
+	SA_layers = layers
+	if joints == nil then
+		SA_joints = tmath.Matrix(3, layers:Rows()-1)
+		SA_joints:SetZero()
+	else
+		SA_joints = joints
+	end
+	addMaterials()
+	addElements()
+-- 	addConstraints()
+	SA_calcSystem = false
+end
+
+function setLoads(deadLoadFactor, varLoad, Fx)
+-- apply load to nodes
+  local nodeLoad = (deadLoad(hb, rho)*deadLoadFactor + varLoad)*SA_l/SA_noe
+  
+  SA_K = SA_struct:SparseStiffness()
+  local F1 = SA_struct:GetAllDisplacements()
+	
+  for i = 2, SA_noe+1 do
+		F1[{i,1}] = -nodeLoad
+  end
+  
+  -- single loads
+	if Fx ~= nil then
+		for i = 0, Fx:Rows()-1 do
+			local nr = math.floor(Fx[{i,0}]*SA_noe + .5)
+			F1[{nr,1}] = F1[{nr,1}] - Fx[{i,1}]
+		end
+	end
+  
+  SA_F =  SA_struct:ToDofDisplacements(F1)
+
+	SA_calcSystem = false
+end
+
+-- ====================== internal Functions ====================== 
 function createNodes()
   local dx = SA_l/SA_noe
   local dy = SA_l/5
-  local nodes_a = tmath.Matrix(noe+1, 4)
-  local nodes_b = tmath.Matrix(noe+1, 4)
+  local nodes_a = tmath.Matrix(SA_noe+1, 4)
+  local nodes_b = tmath.Matrix(SA_noe+1, 4)
   
-  for i = 0, noe do
+  for i = 0, SA_noe do
     nodes_a[i] = tmath.Matrix({{1000 + i, i*dx, 0, 0}})
     nodes_b[i] = tmath.Matrix({{2000 + i, i*dx, -dy, 0}})
   end
@@ -34,7 +103,7 @@ function createElements()
   local el_a = tmath.Matrix(SA_noe, 4)
   local el_b = tmath.Matrix(SA_noe, 4)
   
-  for i = 0, noe-1 do
+  for i = 0, SA_noe-1 do
     el_a[i] = tmath.Matrix({{1000 + i, 1000 + i, 1001 + i, SA_refnnr}})
     el_b[i] = tmath.Matrix({{2000 + i, 2000 + i, 2001 + i, refnnr}})
   end
@@ -57,47 +126,8 @@ function setSupports()
 --   define supports
   SA_struct:GetNode(1000):SetAvailDof(tmath.Matrix({{0, 0, 0, 0, 0, 1}}))
   SA_struct:GetNode(2000):SetAvailDof(tmath.Matrix({{0, 0, 0, 0, 0, 1}}))
-  SA_struct:GetNode(1000+noe):SetAvailDof(tmath.Matrix({{1, 0, 0, 0, 0, 1}}))
-  SA_struct:GetNode(2000+noe):SetAvailDof(tmath.Matrix({{1, 0, 0, 0, 0, 1}}))
-end
-
-
--- ============== init the structure
-function SA_init(l, noe)
-	if l ~= nil then SA_l = l
-		else SA_l = 7.2 
-	end
-	if noe ~= nil then SA_noe = noe
-		else SA_noe = 30
-	end
-	
-	SA_refnnr = 1
-	
-	SA_nodes = createNodes()
-	SA_elements = createElements()
-	SA_constraints = createConstraints()
-	
-	SA_struct = fem.Structure("Shear Analogy")
-	
-	local refnode = tmath.Matrix({{SA_refnnr, 0, 1, 0}})
-	struct:AddNodes(refnode)
-
-    SA_struct:AddNodes(SA_nodes)
-	setSupports()
-end
-
-
-function setLayers(layers, joints)
--- layer array of {thick, width, moe, mos, rho}
--- layer joints of {thick, width, k_ser}
-	SA_layers = layers
-	SA_joints = joints
-	addMaterials()
-	addElements()
-end
-
-function setLoads(deadLoadFactor, varLoad, Fx)
--- @TODO	
+  SA_struct:GetNode(1000+SA_noe):SetAvailDof(tmath.Matrix({{1, 0, 0, 0, 0, 1}}))
+  SA_struct:GetNode(2000+SA_noe):SetAvailDof(tmath.Matrix({{1, 0, 0, 0, 0, 1}}))
 end
 
 function stiffnessBeamA(layers)
@@ -135,15 +165,15 @@ function stiffnessBeamB(layers, joints)
   local ei = tmath.Sum((moe:CW()*A(hb)):CW()*(z_s:CW()^2))
   
   local s_den = 0  -- denominator for ersatz shear stiffness
-  for i = mos:Rows()-1 do
-	if mos[i] > 0 then
-		s_den = s_den + h[i]/(mos[i]*b[i])
-	end
+  for i = 0, mos:Rows()-1 do
+		if mos[i] > 0 then
+			s_den = s_den + h[i]/(mos[i]*b[i])
+		end
   end
-  for i = kser:Rows()-1 do
-	if kser[i] > 0 then
-		s_den = s_den + 1/kser[i]
-	end
+  for i = 0, kser:Rows()-1 do
+		if kser[i] > 0 then
+			s_den = s_den + 1/kser[i]
+		end
   end
   local s = a__tot(h)^2/s_den
   
@@ -163,38 +193,65 @@ function sectionPropertiesBeamB()
   return tmath.Matrix({{A, A_y, A_z, I_x, I_y, I_z}})
 end
 
-function addMaterial()
+function addMaterials()
 -- Properties for reference material
 	local E_cal = 1e10 -- [N/m²]
 	local nu_cal = 0.2
 	local G_cal = E_cal/2/(1+nu_cal)
 	SA_calProp = tmath.Matrix({{E_cal, G_cal}})
 
-  -- add material
-  local mm = SA_struct:AddMaterial(1,"LINEAR_ELASTIC")
-  mm:SetData(tmath.Matrix({{E_cal, nu_cal, 3850}}))
 
-  local ss = SA_struct:AddSection(11, "BEAM3D", 0)
-  ss:SetData(sectionPropertiesBeamA())
-  
-  local ss = SA_struct:AddSection(12, "BEAM3D", 0)
-  ss:SetData(sectionPropertiesBeamB())
+  -- add material
+	local mm = SA_struct:AddMaterial(1,"LINEAR_ELASTIC")
+	mm:SetData(tmath.Matrix({{E_cal, nu_cal, 3850}}))
+
+	local ss = SA_struct:AddSection(11, "BEAM3D", 0)
+	ss:SetData(sectionPropertiesBeamA())
+
+	local ss = SA_struct:AddSection(12, "BEAM3D", 0)
+	ss:SetData(sectionPropertiesBeamB())
 end
 
-function getStresses(struct, hb, l, moe, mos)
+function addElements()
+  SA_struct:AddElements("BEAM3D", 1, 11, SA_elementsA)
+  SA_struct:AddElements("BEAM3D", 1, 12, SA_elementsA)
+end
+
+function addConstraints()
+		-- Find global DOFs and assemble stiffness
+  local nd = SA_struct:GlobalDof()
+--   add constraints between beam a and b
+  SA_struct:AddConstraints(createConstraints(SA_noe))
+end
+
+function getDisplacements()
+  local U1=SA_struct:ToAllDisplacements(SA_U)
+--   get deformations in y direction
+  local u = U1:GetCols(1)*(-1)
+--   get maximum deflection
+  local u_max, z ,s = u:MaxCoeff()
+  --nummer der Zeile des Knotens nnr in U1 or F1 struct:GetNodeIndex(nnr) 
+  --Maximum einer Matrix: val,z,s = A:MaxCoeff()
+	local u_x = tmath.Matrix(1, SA_noe+1)
+	u_x = ux:SetLinearCols(0,l):AppendCols(u)
+  return u_x, u_max
+end
+
+function getStresses()
   -- returns matrix of stresses
   -- rows = n° of layers
   -- cols = sig_top, sig_bottom, tau(z_i=0), tau(z_i=h_i/2), tau(z_i=h_i),
 
-  local nol = hb:Rows()
-  local h = hb:GetCols(0)
+  local nol = layers:Rows()
+  local h, b, moe, mos = layers:GetCols(0), layers:GetCols(1), layers:GetCols(2), layers:GetCols(3)
+  local hb = h:AppendCols(b)
   
-  local el1 = struct:GetElementIndex(1000+noe/2) -- elements right of l/2
-  local el2 = struct:GetElementIndex(2000+noe/2)
-  local el3 = struct:GetElementIndex(1000)
-  local el4 = struct:GetElementIndex(2000)
+  local el1 = SA_struct:GetElementIndex(1000+SA_noe/2) -- elements right of l/2
+  local el2 = SA_struct:GetElementIndex(2000+SA_noe/2)
+  local el3 = SA_struct:GetElementIndex(1000)
+  local el4 = SA_struct:GetElementIndex(2000)
   local elementList = tmath.Matrix({{el1, el2, el3, el4}})
-  local EF = struct:ElementForce(elementList) -- Achtung: noch ein Bug, hier kommen 36 Spalten heraus, aber nur die ersten 12 sind sinvoll....
+  local EF = SA_struct:ElementForce(elementList) -- Achtung: noch ein Bug, hier kommen 36 Spalten heraus, aber nur die ersten 12 sind sinvoll....
   local M_z_max_A = -EF[{0,5}]
   local M_z_max_B = -EF[{1,5}]
   local Q_max_A = EF[{2,1}]
@@ -203,8 +260,8 @@ function getStresses(struct, hb, l, moe, mos)
   
    --internal forces N, M, Q
   -- local intforce = tmath.Matrix(nol,3)
-  local eaa, gaa, eia = stiffA(hb, moe, mos)
-  local eab, gab, eib = stiffB(hb, moe, mos)
+  local eaa, gaa, eia = stiffnessBeamA(hb, moe, mos)
+  local eab, gab, eib = stiffnessBeamB(hb, moe, mos)
   local z_s = z__s(hb, moe)
   -- for i = 0, nol-1 do
     -- intforce[{i,0}] = M_z_max_B*moe[i]*h[i]*z_s[i]/eib --normal force in layer i
@@ -214,6 +271,8 @@ function getStresses(struct, hb, l, moe, mos)
   
   local sig = tmath.Matrix(nol,6)
   local t0 = 0
+	local sig_m, sign_n, ta, tb
+	
   for i = 0, nol-1 do
     sig_m = M_z_max_A/eia*moe[i]*h[i]/2
     sig_n = M_z_max_B/eib*moe[i]*z_s[i]
@@ -234,49 +293,10 @@ end
 
 -- -------------------------------- assemble it all together and calculate the system
 function calcStructure()
-
-  -- addMaterial(struct, hb, moe, mos, kser)
-
---   add elements to Structure
-  local el_a, el_b = createElements(noe, refnnr)
-  struct:AddElements("BEAM3D", 1, 11, el_a)
-  struct:AddElements("BEAM3D", 1, 12, el_b)
-
--- Find global DOFs and assemble stiffness
-  local nd=struct:GlobalDof()
-  
---   add constraints between beam a and b
-  struct:AddConstraints(createConstraints(noe))
-
--- apply load to nodes
-  local var_load = q*hb[{0,1}] --N/m
-  local node_load = (deadLoad(hb, rho)*dlf + var_load)*l/noe
-  
-  local K=struct:SparseStiffness()
-  local F1=struct:GetAllDisplacements()
-  for i = 2, noe+1 do
-	F1[{i,1}] = -node_load
-  end
-  
-  -- single loads
-  -- for i = 0, Fx:Rows()-1 do
-    -- local nr = math.floor(Fx[{i,0}]*noe + .5)
-	-- F1[{nr,1}] = F1[{nr,1}] - Fx[{i,1}]
-  -- end
-  
-  local F =  struct:ToDofDisplacements(F1)
-
 -- solve system
-  local U=K:SolveLU(F)
-  local U1=struct:ToAllDisplacements(U)
---   get deformations in y direction
-  local u = U1:GetCols(1)*(-1)
---   get maximum deflection
-  local u_max, z ,s = u:MaxCoeff()
-  --nummer der Zeile des Knotens nnr in U1 or F1 struct:GetNodeIndex(nnr) 
-  --Maximum einer Matrix: val,z,s = A:MaxCoeff()
-  struct:SetDofDisplacements(U) -- apply deformations to structure (drawing)
-  return u_max, getStresses(struct, hb, l, moe, mos)
+  SA_U=SA_K:SolveLU(SA_F)
+	SA_calcSystem = true
+  SA_struct:SetDofDisplacements(SA_U) -- apply deformations to structure (drawing)
 end 
 
 

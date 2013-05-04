@@ -44,11 +44,7 @@ k_ser = tmath.Matrix({{0,0,0},{0,0,0}})
 q = 3e3*b -- variable load [N/m]
 dl_factor = 1 -- factor for dead load
 Fx = tmath.Matrix({{0, 0}, {0, 0}}) -- single load at F[{i,0}]*l of magnitude F[{i,1}]
--- Probekörper für Bauteilversuche ===============================================
--- zur Kontrolle:
-ea, ga, ei = stiffA(hb, moe, mos)
-print(string.format("EA_a = %.0f N\nGA_a = %.0f N\nEI_a = %.0f N*m²", stiffA(hb, moe, mos)))
-print(string.format("EA_b = %.0f N\nGA_b = %.0f N\nEI_b = %.0f N*m²\n", stiffB(hb, moe, mos)))
+-- Ende Probekörper für Bauteilversuche ===============================================
 
 
 -- ==== Berechnung und Ausgabe =================
@@ -56,9 +52,15 @@ SA_init(l)
 layers = hb:AppendCols(moe)
 layers = layers:AppendCols(mos)
 layers = layers:AppendCols(rho)
-setLayers(layers)
-setJoints(joints)
+-- zur Kontrolle:
+print(string.format("EA_a = %.0f N\nGA_a = %.0f N\nEI_a = %.0f N*m²", stiffnessBeamA(layers)))
+print(string.format("EA_b = %.0f N\nGA_b = %.0f N\nEI_b = %.0f N*m²\n", stiffnessBeamB(layers, k_ser)))
+setLayers(layers, k_ser)
+-- setJoints(k_ser)
 setLoads(dl_factor, q, Fx)
+calcStructure()
+getStresses()
+getDisplacements()
 
 -- korrekte Loesung... für Versuchsbalken??
 -- 
