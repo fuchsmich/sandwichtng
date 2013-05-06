@@ -28,19 +28,20 @@ function SA_init(l, noe)
 	end
 	
 	SA_refnnr = 1
-	
--- 	SA_nodes = createNodes()
-	SA_nodes = tmath.Matrix({{SA_refnnr, 0, 1, 0}}):AppendRows(createNodes())
+
+	-- Properties for reference material
+	local E_cal = 1e10 -- [N/m²]
+	local nu_cal = 0.2
+	local G_cal = E_cal/(2*(1 + nu_cal))
+	SA_calProp = tmath.Matrix({{E_cal, nu_cal, G_cal}})
+
+	SA_nodes = createNodes()
+	-- append refernce node
+	SA_nodes = SA_nodes:AppendRows(tmath.Matrix({{SA_refnnr, 0, 1, 0}}))
+	-- @TODO create elements from nodes Matrix, no need to manually calc nodenumbers again
 	SA_elementsA, SA_elementsB = createElements()
 	SA_constraints = createConstraints()
-	
-	SA_struct = fem.Structure("Shear Analogy")
-	
--- 	SA_nodes = tmath.Matrix({{SA_refnnr, 0, 1, 0}}):AppendCol
--- 	SA_struct:AddNodes(refnode)
 
-	SA_struct:AddNodes(SA_nodes)
-	setSupports()
 end
 
 
@@ -54,33 +55,14 @@ function setLayers(layers, joints)
 	else
 		SA_joints = joints
 	end
-	addMaterials()
-	addElements()
--- 	addConstraints()
 	SA_calcSystem = false
 end
 
 function setLoads(deadLoadFactor, varLoad, Fx)
 -- apply load to nodes
-  local nodeLoad = (deadLoad(hb, rho)*deadLoadFactor + varLoad)*SA_l/SA_noe
-  
-  SA_K = SA_struct:SparseStiffness()
-  local F1 = SA_struct:GetAllDisplacements()
-	
-  for i = 2, SA_noe+1 do
-		F1[{i,1}] = -nodeLoad
-  end
-  
-  -- single loads
-	if Fx ~= nil then
-		for i = 0, Fx:Rows()-1 do
-			local nr = math.floor(Fx[{i,0}]*SA_noe + .5)
-			F1[{nr,1}] = F1[{nr,1}] - Fx[{i,1}]
-		end
-	end
-  
-  SA_F =  SA_struct:ToDofDisplacements(F1)
-
+  SA_nodeLoad = (deadLoad(hb, rho)*deadLoadFactor + varLoad)*SA_l/SA_noe
+	print(SA_nodeLoad)
+  SA_Fx = Fx
 	SA_calcSystem = false
 end
 
@@ -105,7 +87,7 @@ function createElements()
   
   for i = 0, SA_noe-1 do
     el_a[i] = tmath.Matrix({{1000 + i, 1000 + i, 1001 + i, SA_refnnr}})
-    el_b[i] = tmath.Matrix({{2000 + i, 2000 + i, 2001 + i, refnnr}})
+    el_b[i] = tmath.Matrix({{2000 + i, 2000 + i, 2001 + i, SA_refnnr}})
   end
   
   return el_a, el_b
@@ -118,16 +100,6 @@ function createConstraints()
     c[i-1] = tmath.Matrix({{2, 1000+i, 1, -1, 2000+i, 1, 1}})
   end
   return c
-end
-
-function setSupports()
---   fix reference node
-  SA_struct:GetNode(1):SetAvailDof(tmath.Matrix({{0, 0, 0, 0, 0, 0}}))
---   define supports
-  SA_struct:GetNode(1000):SetAvailDof(tmath.Matrix({{0, 0, 0, 0, 0, 1}}))
-  SA_struct:GetNode(2000):SetAvailDof(tmath.Matrix({{0, 0, 0, 0, 0, 1}}))
-  SA_struct:GetNode(1000+SA_noe):SetAvailDof(tmath.Matrix({{1, 0, 0, 0, 0, 1}}))
-  SA_struct:GetNode(2000+SA_noe):SetAvailDof(tmath.Matrix({{1, 0, 0, 0, 0, 1}}))
 end
 
 function stiffnessBeamA(layers)
@@ -146,7 +118,7 @@ function sectionPropertiesBeamA()
   local eaa, gaa, eia = stiffnessBeamA(SA_layers) --sollte eigentlich in eigene section C
 -- x,y,z in CSYS from FEM
   local A_x = eaa/SA_calProp[0]*0.01  --can be 0
-  local A_y = gaa/SA_calProp[1] --can be oo
+  local A_y = gaa/SA_calProp[2] --can be oo
   local A_z = A_y
   local I_z = eia/SA_calProp[0] --important part
   local I_y = I_z --??
@@ -184,7 +156,7 @@ function sectionPropertiesBeamB()
 --   calculates properties for section B
   
   local eab, gab, eib = stiffnessBeamB(SA_layers, SA_joints)
-  local A_y = gab/SA_calProp[1]
+  local A_y = gab/SA_calProp[2]
   local A = A_y  --can be 0
   local A_z = A_y
   local I_z = eib/SA_calProp[0]
@@ -193,47 +165,18 @@ function sectionPropertiesBeamB()
   return tmath.Matrix({{A, A_y, A_z, I_x, I_y, I_z}})
 end
 
-function addMaterials()
--- Properties for reference material
-	local E_cal = 1e10 -- [N/m²]
-	local nu_cal = 0.2
-	local G_cal = E_cal/2/(1+nu_cal)
-	SA_calProp = tmath.Matrix({{E_cal, G_cal}})
-
-
-  -- add material
-	local mm = SA_struct:AddMaterial(1,"LINEAR_ELASTIC")
-	mm:SetData(tmath.Matrix({{E_cal, nu_cal, 3850}}))
-
-	local ss = SA_struct:AddSection(11, "BEAM3D", 0)
-	ss:SetData(sectionPropertiesBeamA())
-
-	local ss = SA_struct:AddSection(12, "BEAM3D", 0)
-	ss:SetData(sectionPropertiesBeamB())
-end
-
-function addElements()
-  SA_struct:AddElements("BEAM3D", 1, 11, SA_elementsA)
-  SA_struct:AddElements("BEAM3D", 1, 12, SA_elementsA)
-end
-
-function addConstraints()
-		-- Find global DOFs and assemble stiffness
-  local nd = SA_struct:GlobalDof()
---   add constraints between beam a and b
-  SA_struct:AddConstraints(createConstraints(SA_noe))
-end
 
 function getDisplacements()
-  local U1=SA_struct:ToAllDisplacements(SA_U)
---   get deformations in y direction
-  local u = U1:GetCols(1)*(-1)
---   get maximum deflection
-  local u_max, z ,s = u:MaxCoeff()
+
+	--   get maximum deflection
   --nummer der Zeile des Knotens nnr in U1 or F1 struct:GetNodeIndex(nnr) 
   --Maximum einer Matrix: val,z,s = A:MaxCoeff()
-	local u_x = tmath.Matrix(1, SA_noe+1)
-	u_x = ux:SetLinearCols(0,l):AppendCols(u)
+  local u_max, z ,s = SA_U:MaxCoeff()
+	
+	-- u(x)
+	u_x = tmath.Matrix(SA_noe + 1, 1)
+	u_x:SetLinearRows(0, SA_l)
+	u_x = u_x:AppendCols(SA_U)
   return u_x, u_max
 end
 
@@ -294,9 +237,73 @@ end
 -- -------------------------------- assemble it all together and calculate the system
 function calcStructure()
 -- solve system
-  SA_U=SA_K:SolveLU(SA_F)
+  local struct = fem.Structure("Shear Analogy")
+	
+  struct:AddNodes(SA_nodes)
+
+-- supports 	
+--   fix reference node
+  struct:GetNode(1):SetAvailDof(tmath.Matrix({{0, 0, 0, 0, 0, 0}}))
+--   define supports
+  struct:GetNode(1000):SetAvailDof(tmath.Matrix({{0, 0, 0, 0, 0, 1}}))
+  struct:GetNode(2000):SetAvailDof(tmath.Matrix({{0, 0, 0, 0, 0, 1}}))
+  struct:GetNode(1000+SA_noe):SetAvailDof(tmath.Matrix({{1, 0, 0, 0, 0, 1}}))
+  struct:GetNode(2000+SA_noe):SetAvailDof(tmath.Matrix({{1, 0, 0, 0, 0, 1}}))
+
+	-- Add Material
+	local mm = struct:AddMaterial(1,"LINEAR_ELASTIC")
+	mm:SetData(tmath.Matrix({{SA_calProp[0], SA_calProp[1], 3850}}))
+	
+	-- add crosssections
+	local ss = struct:AddSection(11, "BEAM3D", 0)
+	ss:SetData(sectionPropertiesBeamA())
+
+	local ss = struct:AddSection(12, "BEAM3D", 0)
+	ss:SetData(sectionPropertiesBeamB())
+
+	-- add Elements
+  struct:AddElements("BEAM3D", 1, 11, SA_elementsA)
+  struct:AddElements("BEAM3D", 1, 12, SA_elementsB)
+
+-- Find global DOFs and assemble stiffness
+  local nd = struct:GlobalDof()
+--   add constraints between beam a and b
+  struct:AddConstraints(SA_constraints)
+
+-- get stiffness matrix
+  local K = struct:SparseStiffness()
+-- get a template for force vector
+  local F1 = struct:GetAllDisplacements()
+
+-- set forces, equal load
+  for i = 2, SA_noe+1 do
+		F1[{i,1}] = -SA_nodeLoad
+  end
+  
+-- single loads
+	if SA_Fx ~= nil then
+		for i = 0, SA_Fx:Rows()-1 do
+		  -- calculate node number (round)
+			local nr = math.floor(SA_Fx[{i,0}]*SA_noe + .5)
+			F1[{nr,1}] = F1[{nr,1}] - SA_Fx[{i,1}]
+		end
+	end
+
+	-- format the force vector
+  local F = struct:ToDofDisplacements(F1)
+
+-- solve the system
+  local U = K:SolveLU(F)
 	SA_calcSystem = true
-  SA_struct:SetDofDisplacements(SA_U) -- apply deformations to structure (drawing)
+
+	-- apply deformations to structure (drawing)
+	struct:SetDofDisplacements(U)
+
+	local U1 = struct:ToAllDisplacements(U)
+--   get deformations in y direction
+  SA_U = U1:GetCols(1):GetRows(0,31)*(-1)
+	
+	-- @TODO write stresses and deformations into global vars for later use
 end 
 
 
