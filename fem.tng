@@ -184,27 +184,22 @@ function getStresses()
   -- returns matrix of stresses
   -- rows = n° of layers
   -- cols = sig_top, sig_bottom, tau(z_i=0), tau(z_i=h_i/2), tau(z_i=h_i),
+-- 	@TODO: getMaxStresses, getStresses(x)
 
-  local nol = layers:Rows()
-  local h, b, moe, mos = layers:GetCols(0), layers:GetCols(1), layers:GetCols(2), layers:GetCols(3)
+  local nol = SA_layers:Rows()
+  local h, b, moe, mos = SA_layers:GetCols(0), SA_layers:GetCols(1), SA_layers:GetCols(2), SA_layers:GetCols(3)
   local hb = h:AppendCols(b)
   
-  local el1 = SA_struct:GetElementIndex(1000+SA_noe/2) -- elements right of l/2
-  local el2 = SA_struct:GetElementIndex(2000+SA_noe/2)
-  local el3 = SA_struct:GetElementIndex(1000)
-  local el4 = SA_struct:GetElementIndex(2000)
-  local elementList = tmath.Matrix({{el1, el2, el3, el4}})
-  local EF = SA_struct:ElementForce(elementList) -- Achtung: noch ein Bug, hier kommen 36 Spalten heraus, aber nur die ersten 12 sind sinvoll....
-  local M_z_max_A = -EF[{0,5}]
-  local M_z_max_B = -EF[{1,5}]
-  local Q_max_A = EF[{2,1}]
-  local Q_max_B = EF[{3,1}]
+  local M_z_max_A = -SA_EF[{0,5}]
+  local M_z_max_B = -SA_EF[{1,5}]
+  local Q_max_A = SA_EF[{2,1}]
+  local Q_max_B = SA_EF[{3,1}]
 --   print(M_z_max_A, M_z_max_B, Q_max_A, Q_max_B)
   
    --internal forces N, M, Q
   -- local intforce = tmath.Matrix(nol,3)
-  local eaa, gaa, eia = stiffnessBeamA(hb, moe, mos)
-  local eab, gab, eib = stiffnessBeamB(hb, moe, mos)
+  local eaa, gaa, eia = stiffnessBeamA(SA_layers)
+  local eab, gab, eib = stiffnessBeamB(SA_layers, SA_joints)
   local z_s = z__s(hb, moe)
   -- for i = 0, nol-1 do
     -- intforce[{i,0}] = M_z_max_B*moe[i]*h[i]*z_s[i]/eib --normal force in layer i
@@ -243,7 +238,7 @@ function calcStructure()
 
 -- supports 	
 --   fix reference node
-  struct:GetNode(1):SetAvailDof(tmath.Matrix({{0, 0, 0, 0, 0, 0}}))
+  struct:GetNode(SA_refnnr):SetAvailDof(tmath.Matrix({{0, 0, 0, 0, 0, 0}}))
 --   define supports
   struct:GetNode(1000):SetAvailDof(tmath.Matrix({{0, 0, 0, 0, 0, 1}}))
   struct:GetNode(2000):SetAvailDof(tmath.Matrix({{0, 0, 0, 0, 0, 1}}))
@@ -303,7 +298,15 @@ function calcStructure()
 --   get deformations in y direction
   SA_U = U1:GetCols(1):GetRows(0,31)*(-1)
 	
+	
 	-- @TODO write stresses and deformations into global vars for later use
+	local el1 = struct:GetElementIndex(1000 + SA_noe/2) -- elements right of l/2
+  local el2 = struct:GetElementIndex(2000 + SA_noe/2)
+  local el3 = struct:GetElementIndex(1000)
+  local el4 = struct:GetElementIndex(2000)
+  local elementList = tmath.Matrix({{el1, el2, el3, el4}})
+  SA_EF = struct:ElementForce(elementList):GetCols(0,12) -- Achtung: noch ein Bug, hier kommen 36 Spalten heraus, aber nur die ersten 12 sind sinvoll....
+ 
 end 
 
 
