@@ -1,6 +1,6 @@
-  function printResults(u, sig)
+function printResults(u, sig)
 	print("Ergebnisse:\n")
-    print(string.format("u_max = %.3f mm", u))
+    print(string.format("u_max = %.3f mm", u*1000))
     -- print("sig: ", sig/1e6)
 	for i = 0, hb:Rows()-1 do
 		print(string.format("sig_"..(i+1)..",o = %.3f N/mm²", sig[{i,0}]/1e6))
@@ -11,49 +11,80 @@
 		print(string.format("tau_"..(i+1)..",m = %.3f N/mm²", sig[{i,3}]/1e6))
 		print(string.format("tau_"..(i+1)..",u = %.3f N/mm²", sig[{i,4}]/1e6))
 	end
-  end
-  
-  function drawResults(u, sig)
-    local h = hb:GetCols(0)
-    local z_s = y__s(hb, moe)*(-1)
-    local z = tmath.Matrix(4)
-    local sigz = tmath.Matrix(4)
---     Normalspannungen
-    local v1=graph.Graph("Normal Stress", "Bright")
-    v1:AxisLabels("stress [N/mm²]", "z_s [mm]")
-    for i = 0, h:Rows()-1 do
-      z[0] = (z_s[i] + h[i]/2)*1000
-      z[1] = (z_s[i] + h[i]/2)*1000
-      z[2] = (z_s[i] - h[i]/2)*1000
-      z[3] = (z_s[i] - h[i]/2)*1000
-      sigz[0] = 0
-      sigz[1] = sig[{i,0}]/1e6
-      sigz[2] = sig[{i,1}]/1e6
-      sigz[3] = 0
+end
+
+function plotDisplacement(w)
+	w = w * -1
+	displaceGraph = graph.Graph("Displacement", "Bright")
+	displaceGraph:AxisLabels("x [mm]", "w(x) [mm]")
+	displaceGraph:Plot(w:GetCols(0),w:GetCols(1), 1, "w(x)")
+end
+
+function plotNormalStress(sig, layers)
+	local h, hb, moe = layers:GetCols(0), layers:GetCols(0,2), layers:GetCols(2)
+	local z_s = z__s(hb, moe)*(-1)
+	local z = tmath.Matrix(4)
+	local sigz = tmath.Matrix(4)
+	local nstressGraph = graph.Graph("Normal Stress", "Bright")
+	nstressGraph:AxisLabels("stress [N/mm²]", "z_s [mm]")
+	for i = 0, h:Rows()-1 do
+		z[0] = (z_s[i] + h[i]/2)*1000
+		z[1] = (z_s[i] + h[i]/2)*1000
+		z[2] = (z_s[i] - h[i]/2)*1000
+		z[3] = (z_s[i] - h[i]/2)*1000
+		sigz[0] = 0
+		sigz[1] = sig[{i,0}]/1e6
+		sigz[2] = sig[{i,1}]/1e6
+		sigz[3] = 0
 --       print(sigz, z)
-      v1:Plot(sigz,z, i+1, "sig["..(i+1).."]")
-    end
+		nstressGraph:Plot(sigz,z, i+1, "sig["..(i+1).."]")
+	end
+end
+
+function plotShearStress(sig)
+end
+
+function drawResults(u, sig)
+	local h = hb:GetCols(0)
+	local z_s = z__s(hb, moe)*(-1)
+	local z = tmath.Matrix(4)
+	local sigz = tmath.Matrix(4)
+--     Normalspannungen
+	local v1=graph.Graph("Normal Stress", "Bright")
+	v1:AxisLabels("stress [N/mm²]", "z_s [mm]")
+	for i = 0, h:Rows()-1 do
+		z[0] = (z_s[i] + h[i]/2)*1000
+		z[1] = (z_s[i] + h[i]/2)*1000
+		z[2] = (z_s[i] - h[i]/2)*1000
+		z[3] = (z_s[i] - h[i]/2)*1000
+		sigz[0] = 0
+		sigz[1] = sig[{i,0}]/1e6
+		sigz[2] = sig[{i,1}]/1e6
+		sigz[3] = 0
+--       print(sigz, z)
+		v1:Plot(sigz,z, i+1, "sig["..(i+1).."]")
+	end
 --     Schubspannungen
-    local v2=graph.Graph("Shear Stress", "Bright")
-    v2:AxisLabels("stress [N/mm²]", "z_s [mm]")
-    local z = tmath.Matrix(3)
-    local tauz = tmath.Matrix(3)
-    local n = 10
-    local zz = tmath.Matrix(n)
-    local tauzz = tmath.Matrix(n)
-    for i = 0, h:Rows()-1 do
-      for j = 0, 2 do
-	z[j] = (z_s[i] - (j-1)*h[i]/2)*1000
-	tauz[j] = sig[{i,j+2}]/1e6
-      end
-      v2:Plot(tauz,z, 1, "tau["..(i+1).."]")
-      local dz = h[i]/(n-1)
-      local a = (tauz[1] - tauz[2]/2 -tauz[0]/2)/(-(h[i]/2)^2) 
-      local b = (tauz[1] - tauz[2]/4 - 3*tauz[0]/4)/(h[i]/4)
-      for j = 0,n-1 do
-		zz[j] = (z_s[i] + h[i]/2 - j*dz)*1000
-		tauzz[j] = tauz[0] + b*j*dz + a*(j*dz)^2
-      end
-      v2:Plot(tauzz,zz, 2, "tau["..(i+1).."]")
-    end
-  end
+	local v2=graph.Graph("Shear Stress", "Bright")
+	v2:AxisLabels("stress [N/mm²]", "z_s [mm]")
+	local z = tmath.Matrix(3)
+	local tauz = tmath.Matrix(3)
+	local n = 10
+	local zz = tmath.Matrix(n)
+	local tauzz = tmath.Matrix(n)
+	for i = 0, h:Rows()-1 do
+		for j = 0, 2 do
+			z[j] = (z_s[i] - (j-1)*h[i]/2)*1000
+			tauz[j] = sig[{i,j+2}]/1e6
+		end
+		v2:Plot(tauz,z, 1, "tau["..(i+1).."]")
+		local dz = h[i]/(n-1)
+		local a = (tauz[1] - tauz[2]/2 -tauz[0]/2)/(-(h[i]/2)^2) 
+		local b = (tauz[1] - tauz[2]/4 - 3*tauz[0]/4)/(h[i]/4)
+		for j = 0,n-1 do
+			zz[j] = (z_s[i] + h[i]/2 - j*dz)*1000
+			tauzz[j] = tauz[0] + b*j*dz + a*(j*dz)^2
+		end
+		v2:Plot(tauzz,zz, 2, "tau["..(i+1).."]")
+	end
+end

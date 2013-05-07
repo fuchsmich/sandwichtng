@@ -62,8 +62,10 @@ calcStructure()
 u_x, u_max = getDisplacements()
 sig = getStresses()
 
-print("u_max = ", u_max*1000, "mm")
-print("sig", sig/1000^2)
+printResults(u_max, sig)
+plotDisplacement(u_x)
+plotNormalStress(getStresses(0.5), layers)
+-- drawResults(u_max, sig)
 -- korrekte Loesung... für Versuchsbalken??
 -- 
 -- u_max	0.011130073811788

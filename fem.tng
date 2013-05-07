@@ -61,7 +61,6 @@ end
 function setLoads(deadLoadFactor, varLoad, Fx)
 -- apply load to nodes
   SA_nodeLoad = (deadLoad(hb, rho)*deadLoadFactor + varLoad)*SA_l/SA_noe
-	print(SA_nodeLoad)
   SA_Fx = Fx
 	SA_calcSystem = false
 end
@@ -180,6 +179,18 @@ function getDisplacements()
   return u_x, u_max
 end
 
+function getStresses(x)
+  local nol = SA_layers:Rows()
+  local h, b, moe, mos = SA_layers:GetCols(0), SA_layers:GetCols(1), SA_layers:GetCols(2), SA_layers:GetCols(3)
+  local hb = h:AppendCols(b)
+  
+	local elNnr = math.floor(x*SA_noe + .5)
+	local M_y_A = -SA_elementForces[{0,elNr}]
+	local M_y_B = -SA_elementForces[{0,elNr}]
+  local Q_z_A = SA_elementForces[{2,1}]
+  local Q_z_B = SA_elementForces[{3,1}]
+end
+
 function getStresses()
   -- returns matrix of stresses
   -- rows = n° of layers
@@ -190,10 +201,10 @@ function getStresses()
   local h, b, moe, mos = SA_layers:GetCols(0), SA_layers:GetCols(1), SA_layers:GetCols(2), SA_layers:GetCols(3)
   local hb = h:AppendCols(b)
   
-  local M_z_max_A = -SA_EF[{0,5}]
-  local M_z_max_B = -SA_EF[{1,5}]
-  local Q_max_A = SA_EF[{2,1}]
-  local Q_max_B = SA_EF[{3,1}]
+  local M_z_max_A = -SA_elementForces[{0,5}]
+  local M_z_max_B = -SA_elementForces[{1,5}]
+  local Q_max_A = SA_elementForces[{2,1}]
+  local Q_max_B = SA_elementForces[{3,1}]
 --   print(M_z_max_A, M_z_max_B, Q_max_A, Q_max_B)
   
    --internal forces N, M, Q
@@ -300,13 +311,12 @@ function calcStructure()
 	
 	
 	-- @TODO write stresses and deformations into global vars for later use
-	local el1 = struct:GetElementIndex(1000 + SA_noe/2) -- elements right of l/2
-  local el2 = struct:GetElementIndex(2000 + SA_noe/2)
-  local el3 = struct:GetElementIndex(1000)
-  local el4 = struct:GetElementIndex(2000)
-  local elementList = tmath.Matrix({{el1, el2, el3, el4}})
-  SA_EF = struct:ElementForce(elementList):GetCols(0,12) -- Achtung: noch ein Bug, hier kommen 36 Spalten heraus, aber nur die ersten 12 sind sinvoll....
- 
-end 
+  local elementList = tmath.Matrix(1, SA_noe)
+	elementList:SetLinearCols(0, SA_noe-1)
+-- Achtung: noch ein Bug, hier kommen 36 Spalten heraus, aber nur die ersten 12 sind sinvoll....
+  SA_elementForcesA = struct:ElementForce(elementList):GetCols(0,12) 
+	
+	
+end
 
 
