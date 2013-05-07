@@ -184,14 +184,51 @@ function getStresses(x)
   local h, b, moe, mos = SA_layers:GetCols(0), SA_layers:GetCols(1), SA_layers:GetCols(2), SA_layers:GetCols(3)
   local hb = h:AppendCols(b)
   
-	local elNnr = math.floor(x*SA_noe + .5)
-	local M_y_A = -SA_elementForces[{0,elNr}]
-	local M_y_B = -SA_elementForces[{0,elNr}]
-  local Q_z_A = SA_elementForces[{2,1}]
-  local Q_z_B = SA_elementForces[{3,1}]
+	local nodeNr = math.floor(x*SA_noe + .5)
+	local M_y_A = -SA_elementForcesA[{nodeNr, 5}]
+	local M_y_B = -SA_elementForcesB[{nodeNr, 5}]
+  local Q_z_A = SA_elementForcesA[{nodeNr, 1}]
+  local Q_z_B = SA_elementForcesB[{nodeNr, 1}]
+	
+  local eaa, gaa, eia = stiffnessBeamA(SA_layers)
+  local eab, gab, eib = stiffnessBeamB(SA_layers, SA_joints)
+  local z_s = z__s(hb, moe)
+	-- print(z_s)
+  local sig = tmath.Matrix(nol,6)
+  local t0 = 0
+	local sig_m, sign_n, ta, tb
+	
+  for i = 0, nol-1 do
+    sig_m = M_y_A/eia*moe[i]*h[i]/2
+    sig_n = M_y_B/eib*moe[i]*z_s[i]
+    sig[{i,0}] = sig_n - sig_m
+    sig[{i,1}] = sig_n + sig_m
+    ta = -Q_z_A*moe[i]/eia*(-h[i]^2/8)
+    tb = -Q_z_B*moe[i]/eib*z_s[i]*(h[i]/2 + h[i]/2)
+    sig[{i,2}] = t0
+    sig[{i,3}] = ta + tb/2 +t0
+    sig[{i,4}] = tb +t0
+	-- tau_max (wenn vorhanden
+	-- Parameter für Parabel
+		local a = (sig[{i,3}] - sig[{i,4}]/2 - sig[{i,2}]/2)/(-(h[i]/2)^2) 
+		local b = (sig[{i,3}] - sig[{i,4}]/4 - 3*sig[{i,2}]/4)/(h[i]/4)
+		-- Lage tau_max
+		local z_tmax = - (h[i]/2 - (-b/(2*a)))
+		sig[{i,5}] = -Q_z_A*moe[i]/eia*(z_tmax^2/2-h[i]^2/8) 
+			- Q_z_B*moe[i]/eib*z_s[i]*(z_tmax + h[i]/2) + t0
+			
+		print("z_tmax", z_tmax)
+		-- print("tau_max", tau_max)
+		-- local z = h[i]/(sig[{i,1}] - sig[{i,0}])*(-sig[{i,1}])
+		-- sig[{i,5}] = - Q_z_A*moe[i]/eia*(z^2/2-h[i]^2/8) 
+			-- - Q_z_B*moe[i]/eib*z_s[i]*(z + h[i]/2) +t0
+		t0 = sig[{i,4}]
+  end
+  	
+	return sig 
 end
 
-function getStresses()
+function _getStresses()
   -- returns matrix of stresses
   -- rows = n° of layers
   -- cols = sig_top, sig_bottom, tau(z_i=0), tau(z_i=h_i/2), tau(z_i=h_i),
@@ -201,10 +238,10 @@ function getStresses()
   local h, b, moe, mos = SA_layers:GetCols(0), SA_layers:GetCols(1), SA_layers:GetCols(2), SA_layers:GetCols(3)
   local hb = h:AppendCols(b)
   
-  local M_z_max_A = -SA_elementForces[{0,5}]
-  local M_z_max_B = -SA_elementForces[{1,5}]
-  local Q_max_A = SA_elementForces[{2,1}]
-  local Q_max_B = SA_elementForces[{3,1}]
+  local M_z_max_A = -SA_elementForcesA[{SA_noe/2,5}]
+  local M_z_max_B = -SA_elementForcesB[{SA_noe/2,5}]
+  local Q_max_A = SA_elementForcesA[{0,1}]
+  local Q_max_B = SA_elementForcesB[{0,1}]
 --   print(M_z_max_A, M_z_max_B, Q_max_A, Q_max_B)
   
    --internal forces N, M, Q
@@ -315,8 +352,8 @@ function calcStructure()
 	elementList:SetLinearCols(0, SA_noe-1)
 -- Achtung: noch ein Bug, hier kommen 36 Spalten heraus, aber nur die ersten 12 sind sinvoll....
   SA_elementForcesA = struct:ElementForce(elementList):GetCols(0,12) 
-	
-	
+	elementList:SetLinearCols(SA_noe, 2*SA_noe-1)
+  SA_elementForcesB = struct:ElementForce(elementList):GetCols(0,12) 
 end
 
 

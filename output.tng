@@ -44,7 +44,7 @@ end
 function plotShearStress(sig)
 end
 
-function drawResults(u, sig)
+function drawResults(sig)
 	local h = hb:GetCols(0)
 	local z_s = z__s(hb, moe)*(-1)
 	local z = tmath.Matrix(4)

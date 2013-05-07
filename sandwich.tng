@@ -4,15 +4,8 @@
 * input wiederherstellen (input.tng)
 * 
 ]]--
-  dofile("fem.tng")
-  dofile("output.tng")
-  
-  
-  function startCalculation()
-      local u, sig = calcStructure(hb, l, moe, mos, rho, dl_factor, q, Fx)
-      printResults(u, sig)
-      drawResults(u, sig)
-  end
+dofile("fem.tng")
+dofile("output.tng")
 
 -- main starts here ===============================================================
 -- Großversuche Kirchmayer=======================================================
@@ -46,25 +39,32 @@ dl_factor = 1 -- factor for dead load
 -- Fx = tmath.Matrix({{0, 0}, {0, 0}}) -- single load at F[{i,0}]*l of magnitude F[{i,1}]
 -- Ende Probekörper für Bauteilversuche ===============================================
 
-
 -- ==== Berechnung und Ausgabe =================
 layers = hb:AppendCols(moe)
 layers = layers:AppendCols(mos)
 layers = layers:AppendCols(rho)
 -- zur Kontrolle:
-print(string.format("EA_a = %.0f N\nGA_a = %.0f N\nEI_a = %.0f N*m²", stiffnessBeamA(layers)))
-print(string.format("EA_b = %.0f N\nGA_b = %.0f N\nEI_b = %.0f N*m²\n", stiffnessBeamB(layers, k_ser)))
+-- print(string.format("EA_a = %.0f N\nGA_a = %.0f N\nEI_a = %.0f N*m²", stiffnessBeamA(layers)))
+-- print(string.format("EA_b = %.0f N\nGA_b = %.0f N\nEI_b = %.0f N*m²\n", stiffnessBeamB(layers, k_ser)))
 
 SA_init(l)
 setLayers(layers, k_ser)
 setLoads(dl_factor, q)
 calcStructure()
 u_x, u_max = getDisplacements()
-sig = getStresses()
 
-printResults(u_max, sig)
-plotDisplacement(u_x)
-plotNormalStress(getStresses(0.5), layers)
+sig = getStresses(0.5)
+print(sig/1e6)
+drawResults(sig)
+
+sig = getStresses(0)
+print(sig/1e6)
+
+drawResults(sig)
+
+-- printResults(u_max, sig)
+-- plotDisplacement(u_x)
+-- plotNormalStress(getStresses(0.5), layers)
 -- drawResults(u_max, sig)
 -- korrekte Loesung... für Versuchsbalken??
 -- 
