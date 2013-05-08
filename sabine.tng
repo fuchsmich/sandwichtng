@@ -1,0 +1,100 @@
+--[[ interface for calculating a Sandwich beam (c) 2013 Michael Fuchs 
+@TODO:
+* Langezeit Durchbiegung
+* Spannungen mit gamma_d
+* Nachweise ausgeben sig_d,vorh < f_d, u < u_lim = l/300
+@DID
+* output (print und plot) in output.tng
+
+]]--
+dofile("fem.tng")
+dofile("output.tng")
+
+-- main starts here ===============================================================
+-- Großversuche Kirchmayer=======================================================
+-- l = 4.8
+-- b = 0.42
+-- hb = tmath.Matrix({{6.8e-2, b}, {7.5e-2, b}, {5.7e-2, b}})
+-- Ergebnisse
+-- - Material
+-- moe = tmath.Matrix({{19560e6}, {1000e6}, {11600e6}}) -- MoE [N/m²]
+-- mos = tmath.Matrix({{moe[0]/2/(1+0.2)}, {15e6}, {690e6}}) --MoS [N/m²]
+-- rho = tmath.Matrix({{2400}, {750}, {470}}) --density [kg/m³]
+
+-- - Lasten
+-- q = 0 -- variable load [N/m²]
+-- dl_factor = 0 -- factor for dead load
+-- Fx = tmath.Matrix({{0.5, 10e3}}) -- single load at F[{i,0}]*l of magnitude F[{i,1}]
+-- Großversuche Kirchmayer =======================================================
+
+-- Probekörper für Bauteilversuche ===============================================
+-- l = 7.2
+-- b = 0.5
+-- hb = tmath.Matrix({{6e-2, b}, 
+									-- {15e-2, b}, 
+									-- {3.9e-2, b}, 
+									-- {4e-2, b}, 
+									-- {3.9e-2, b}})
+-- - Material
+-- moe = tmath.Matrix({{19560e6}, {1000e6}, {11600e6}, {370e6}, {11600e6}}) -- MoE [N/m²]
+-- mos = tmath.Matrix({{moe[0]/2/(1+0.2)}, {15e6}, {690e6}, {50e6}, {690e6}}) --MoS [N/m²]
+-- rho = tmath.Matrix({{2400}, {750}, {500}, {500}, {500}}) --density [kg/m³]
+-- k_ser = tmath.Matrix({{0,0,0},{0,0,0},{0,0,0},{0,0,0}})
+-- - Lasten
+-- gamma_g = 1.35
+-- gamma_q = 1.5
+-- q = 3e3*b*gamma_q -- variable load [N/m]
+-- dl_factor = gamma_g -- factor for dead load
+-- Fx = tmath.Matrix({{0, 0}, {0, 0}}) -- single load at F[{i,0}]*l of magnitude F[{i,1}]
+-- Ende Probekörper für Bauteilversuche ===============================================
+
+-- Sabine ============================
+l = 5
+b = 1
+hb = tmath.Matrix({{6e-2, b}, 
+									{10e-2, b}, 
+									{6.2e-2, b}})
+-- - Material
+moe = tmath.Matrix({{19560e6}, {1000e6}, {11600e6}}) -- MoE [N/m²]
+mos = tmath.Matrix({{moe[0]/2/(1+0.2)}, {15e6}, {720e6}}) --MoS [N/m²]
+rho = tmath.Matrix({{2400}, {750}, {500}}) --density [kg/m³]
+k_ser = tmath.Matrix({{0,0,0},{0,0,0}})
+-- - Lasten
+gamma_g = 1.35
+gamma_q = 1.5
+q = 2e3*b*gamma_q -- variable load [N/m]
+dl_factor = gamma_g -- factor for dead load
+
+-- Ende Sabine ============================
+-- ==== Berechnung und Ausgabe =================
+layers = hb:AppendCols(moe)
+layers = layers:AppendCols(mos)
+layers = layers:AppendCols(rho)
+-- zur Kontrolle:
+-- print(string.format("EA_a = %.0f N\nGA_a = %.0f N\nEI_a = %.0f N*m²", stiffnessBeamA(layers)))
+-- print(string.format("EA_b = %.0f N\nGA_b = %.0f N\nEI_b = %.0f N*m²\n", stiffnessBeamB(layers, k_ser)))
+
+SA_init(l)
+setLayers(layers, k_ser)
+setLoads(dl_factor, q)
+calcStructure()
+u_x, u_max = getDisplacements()
+
+sig = getStresses(0.5)
+tau = getStresses(0)
+
+drawResults(sig)
+drawResults(tau)
+printResults(u_max, sig, tau)
+
+-- printResults(u_max, sig)
+-- plotDisplacement(u_x)
+-- plotNormalStress(getStresses(0.5), layers)
+-- drawResults(u_max, sig)
+-- korrekte Loesung... für Versuchsbalken??
+-- 
+-- u_max	0.011130073811788
+-- sig: Matrix 3x3
+-- -3.4997e+006	-1.2254e+006	-21881	
+-- -166544	124139	3078.89	
+-- -98039.1	2.55454e+006	62218.8	
