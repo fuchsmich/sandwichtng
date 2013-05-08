@@ -39,7 +39,32 @@ function plotNormalStress(sig, layers)
 	end
 end
 
-function plotShearStress(sig)
+function plotShearStress(sig, layers)
+	local h, hb, moe = layers:GetCols(0), layers:GetCols(0,2), layers:GetCols(2)
+	local z_s = z__s(hb, moe)*(-1)
+	
+	local sstressGraph=graph.Graph("Shear Stress", "Bright")
+	sstressGraph:AxisLabels("stress [N/mm²]", "z_s [mm]")
+	local z = tmath.Matrix(3)
+	local tauz = tmath.Matrix(3)
+	local n = 10
+	local zz = tmath.Matrix(n)
+	local tauzz = tmath.Matrix(n)
+	for i = 0, h:Rows()-1 do
+		for j = 0, 2 do
+			z[j] = (z_s[i] - (j-1)*h[i]/2)*1000
+			tauz[j] = sig[{i,j+2}]/1e6
+		end
+		sstressGraph:Plot(tauz,z, 1, "tau["..(i+1).."]")
+		local dz = h[i]/(n-1)
+		local a = (tauz[1] - tauz[2]/2 -tauz[0]/2)/(-(h[i]/2)^2) 
+		local b = (tauz[1] - tauz[2]/4 - 3*tauz[0]/4)/(h[i]/4)
+		for j = 0,n-1 do
+			zz[j] = (z_s[i] + h[i]/2 - j*dz)*1000
+			tauzz[j] = tauz[0] + b*j*dz + a*(j*dz)^2
+		end
+		sstressGraph:Plot(tauzz,zz, 2, "tau["..(i+1).."]")
+	end
 end
 
 function drawResults(sig)

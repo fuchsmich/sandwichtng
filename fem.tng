@@ -3,12 +3,11 @@ beam system for shear analogy method
 (c) 2012 Michael Fuchs michfu@gmx.at
 
 @TODO:
-* status des systems speicher: berechnet oder nicht? (zB nach ändern eines Parameters)
-* setter/getter für werte?
-* struct = nil (freigeben)
 * G, kser only for certain sections
 
 @DID:
+* setter/getter für werte?
+* status des systems speicher: berechnet oder nicht? (zB nach ändern eines Parameters)
 * y => z für SA
 * hb, moe, mos, rho in ein array
 * fugensteifigkeit für fugen (k_ser?)
@@ -65,6 +64,11 @@ function setLoads(deadLoadFactor, varLoad, Fx)
 	SA_calcSystem = false
 end
 
+function setScrews(k_ser1, e_y, l, n)
+	-- e_y Abstand der Schraubenreihen
+	SA_screw_K_ser = k_ser1*n/(l*n)
+	SA_screw_l = l
+end
 -- ====================== internal Functions ====================== 
 function createNodes()
   local dx = SA_l/SA_noe

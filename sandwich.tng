@@ -43,9 +43,9 @@ function bauteilversuchBSH()
 	gamma_q = 1.5
 	q = 3e3*b*gamma_q -- variable load [N/m]
 	dl_factor = gamma_g -- factor for dead load
-	Fx = tmath.Matrix({{0.25, q*l/2}, 
-										 {0.75, q*l/2}}) -- single load at F[{i,0}]*l of magnitude F[{i,1}]
-	q = 0
+	-- Fx = tmath.Matrix({{0.25, q*l/2}, 
+										 -- {0.75, q*l/2}}) -- single load at F[{i,0}]*l of magnitude F[{i,1}]
+	-- q = 0
 end
 
 function bauteilversuchBSP()
@@ -76,7 +76,13 @@ function bauteilversuchBSP()
 												{0},
 												{0},
 												{0}})
-	-- - Lasten
+-- Schrauben
+-- k_ser1 einer Schraube [N/m] (aus Schubversuch):
+	k_ser1 = 2.12e7
+	n_screw = 3
+	l_screw = 1.5
+	e_y_screw = 0.25
+-- - Lasten
 	gamma_g = 1.35
 	gamma_q = 1.5
 	q = 3e3*b*gamma_q -- variable load [N/m]
@@ -113,7 +119,7 @@ end
 function dominik()
 end
 
-bauteilversuchBSP()
+bauteilversuchBSH()
 -- ==== Berechnung und Ausgabe =================
 layers = hb:AppendCols(moe)
 layers = layers:AppendCols(mos)
@@ -131,14 +137,16 @@ setLoads(dl_factor, q)
 calcStructure()
 u_x, u_max = getDisplacements()
 
+
 sig = getStresses(0.5)
-print(sig/1e6)
-drawResults(sig)
+-- print(sig/1e6)
+plotNormalStress(sig, layers)
 
-sig = getStresses(0)
-print(sig/1e6)
+tau = getStresses(0)
+-- print(tau/1e6)
+plotShearStress(tau, layers)
 
-drawResults(sig)
+printResults(u_max, sig, tau)
 
 -- printResults(u_max, sig)
 -- plotDisplacement(u_x)
