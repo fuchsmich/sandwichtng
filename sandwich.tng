@@ -102,6 +102,9 @@ end
 function sabine()
 	l = 5
 	b = 1
+	label = {"Beton",
+					"Velox",
+					"Holz"}
 	hb = tmath.Matrix({{6e-2, b}, 
 										{10e-2, b}, 
 										{6.2e-2, b}})
@@ -127,7 +130,9 @@ end
 
 function dominik()
 	l = 8.10
-	b_Holz = 0.675
+	b_Holz = 0.240
+	label = {"Beton",
+					  "Holz"}
 	hb = tmath.Matrix({{80e-3, 675e-3}, 
 										{280e-3, b_Holz}})
 	-- - Material
@@ -141,21 +146,17 @@ function dominik()
 	s_eff_Kerve = 1.57   -- [m]
 	k_ser = tmath.Matrix({{K_ser_Kerve*b_Holz/s_eff_Kerve}}) --Federstefigkeit der Fuge (0 = oo) [N/m^2]
 	-- - Lasten
-	q = 4e3 -- variable load [N/m]
-	dl_factor = 1 -- factor for dead load
+	q = (3.2e3 + 4e3) -- variable load [N/m]
+	dl_factor = 0 -- factor for dead load
 	Fx = nil
 end
 
-<<<<<<< HEAD
-
--- Werte aufrufen:
-bauteilversuchBSH()
--- sabine()
-=======
 -- Werte laden:
 -- bauteilversuchBSH()
-dominik()
->>>>>>> b8123e5e959698ef408cd48a661419f2d5521aa7
+-- bauteilversuchBSP()
+-- dominik()
+sabine()
+
 -- ==== Berechnung und Ausgabe =================
 layers = hb:AppendCols(moe)
 layers = layers:AppendCols(mos)
@@ -182,7 +183,7 @@ tau = getStresses(0)
 -- print(tau/1e6)
 plotShearStress(tau, layers)
 
-printResults(u_max, sig, tau)
+printResults(label, u_max, sig, tau)
 
 -- printResults(u_max, sig)
 -- plotDisplacement(u_x)
