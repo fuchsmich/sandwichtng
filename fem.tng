@@ -4,6 +4,7 @@ beam system for shear analogy method
 
 @TODO:
 * G, kser only for certain sections
+* schubspannungen für fugen nochmal prüfen...
 
 @DID:
 * setter/getter für werte?
@@ -135,7 +136,8 @@ function stiffnessBeamB(layers, joints)
   local h, b, moe, mos = layers:GetCols(0), layers:GetCols(1), layers:GetCols(2), layers:GetCols(3)
   local hb = h:AppendCols(b)
   local kser = joints:GetCols(2)
-  
+  print(kser)
+	
   local z_s = z__s(hb, moe)
   local ei = tmath.Sum((moe:CW()*A(hb)):CW()*(z_s:CW()^2))
   
@@ -143,11 +145,13 @@ function stiffnessBeamB(layers, joints)
   for i = 0, mos:Rows()-1 do
 		if mos[i] > 0 then
 			s_den = s_den + h[i]/(mos[i]*b[i])
+			print(s_den)
 		end
   end
   for i = 0, kser:Rows()-1 do
 		if kser[i] > 0 then
 			s_den = s_den + 1/kser[i]
+			print(s_den)
 		end
   end
   local s = a__tot(h)^2/s_den
@@ -200,7 +204,7 @@ function getStresses(x)
 	-- print(z_s)
   local sig = tmath.Matrix(nol,6)
   local t0 = 0
-	local sig_m, sign_n, ta, tb
+	local sig_m, sig_n, ta, tb
 	
   for i = 0, nol-1 do
     sig_m = M_y_A/eia*moe[i]*h[i]/2
