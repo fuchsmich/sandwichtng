@@ -4,10 +4,19 @@
 * Rollschub tau ~ 1,1 N/mm² ???
 * Langezeit Durchbiegung
 * Spannungen mit gamma_d
-* Nachweise ausgeben sig_d,vorh < f_d, u < u_lim = l/300
+* Nachweise
+		ULS
+		*Normalspannung Holz
+		*Biegespannung Holz
+		*Rollschubspannung Holz
+		*Schubspannung Velox (falls keine Schrauben bzw. im Bereich wo keine Schrauben)
+		*Belastung SChrauben
+		SLS
+		*Langzeitdurchbiegung
 @DID
 * output (print und plot) in output.tng
 ]]--
+
 dofile("fem.tng")
 dofile("output.tng")
 
@@ -119,7 +128,10 @@ end
 function dominik()
 end
 
+
+-- Werte aufrufen:
 bauteilversuchBSH()
+-- sabine()
 -- ==== Berechnung und Ausgabe =================
 layers = hb:AppendCols(moe)
 layers = layers:AppendCols(mos)

@@ -270,12 +270,12 @@ function _getStresses()
     sig[{i,1}] = sig_n + sig_m
     ta = -Q_max_A*moe[i]/eia*(-h[i]^2/8)
     tb = -Q_max_B*moe[i]/eib*z_s[i]*(h[i]/2 + h[i]/2)
-    sig[{i,2}] = t0
-    sig[{i,3}] = ta + tb/2 +t0
-    sig[{i,4}] = tb +t0
+    sig[{i,2}] = t0/b[i]
+    sig[{i,3}] = (ta + tb/2 +t0)/b[i]
+    sig[{i,4}] = (tb +t0)/b[i]
 	-- Kontrollwert für Parabel:
     sig[{i,5}] = - Q_max_A*moe[i]/eia*((-h[i]/4)^2/2-h[i]^2/8) - Q_max_B*moe[i]/eib*z_s[i]*((-h[i]/4) + h[i]/2) +t0
-    t0 = sig[{i,4}]
+    t0 = tb + t0
   end
   return sig
 end
