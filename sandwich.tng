@@ -75,7 +75,7 @@ function bauteilversuchBSP()
 	k_ser = tmath.Matrix({{0},
 												{0},
 												{0},
-												{0}})
+												{0}}) -- [N/m^2]
 -- Schrauben
 -- k_ser1 einer Schraube [N/m] (aus Schubversuch):
 	k_ser1 = 2.12e7
@@ -107,7 +107,7 @@ function sabine()
 											{750}, 
 											{500}}) --density [kg/m³]
 	k_ser = tmath.Matrix({{0},
-												{0}}) --Federstefigkeit der Fuge (0 = oo)
+												{0}}) --Federstefigkeit der Fuge (0 = oo) [N/m^2]
 	-- - Lasten
 	gamma_g = 1.35
 	gamma_q = 1.5
@@ -117,9 +117,29 @@ function sabine()
 end
 
 function dominik()
+	l = 8.10
+	b_Holz = 0.675
+	hb = tmath.Matrix({{80e-3, 675e-3}, 
+										{280e-3, b_Holz}})
+	-- - Material
+	moe = tmath.Matrix({{28300e6}, 
+											{12600e6}}) -- MoE [N/m²]
+	mos = tmath.Matrix({{moe[0]/2/(1+0.2)}, 
+											{720e6}}) --MoS [N/m²]
+	rho = tmath.Matrix({{2400}, 
+											{500}}) --density [kg/m³]
+	K_ser_Kerve = 1136e6   -- [N/m^2]
+	s_eff_Kerve = 1.57   -- [m]
+	k_ser = tmath.Matrix({{K_ser_Kerve*b_Holz/s_eff_Kerve}}) --Federstefigkeit der Fuge (0 = oo) [N/m^2]
+	-- - Lasten
+	q = 4e3 -- variable load [N/m]
+	dl_factor = 1 -- factor for dead load
+	Fx = nil
 end
 
-bauteilversuchBSH()
+-- Werte laden:
+-- bauteilversuchBSH()
+dominik()
 -- ==== Berechnung und Ausgabe =================
 layers = hb:AppendCols(moe)
 layers = layers:AppendCols(mos)
@@ -128,8 +148,8 @@ kser = tmath.Matrix(layers:Rows() - 1, 2)
 kser:SetZero()
 kser = kser:AppendCols(k_ser)
 -- zur Kontrolle:
--- print(string.format("EA_a = %.0f N\nGA_a = %.0f N\nEI_a = %.0f N*m²", stiffnessBeamA(layers)))
--- print(string.format("EA_b = %.0f N\nGA_b = %.0f N\nEI_b = %.0f N*m²\n", stiffnessBeamB(layers, k_ser)))
+print(string.format("EA_a = %.0f N\nGA_a = %.0f N\nEI_a = %.0f N*m²", stiffnessBeamA(layers)))
+print(string.format("EA_b = %.0f N\nGA_b = %.0f N\nEI_b = %.0f N*m²\n", stiffnessBeamB(layers, kser)))
 
 SA_init(l)
 setLayers(layers, kser)
