@@ -24,6 +24,9 @@ function kirchmayer()
 -- Großversuche Kirchmayer=======================================================
 	l = 4.8
 	b = 0.42
+	label = {"Beton",
+					"Velox",
+					"Holz"}
 	hb = tmath.Matrix({{6.8e-2, b}, {7.5e-2, b}, {5.7e-2, b}})
 	-- - Material
 	moe = tmath.Matrix({{19560e6}, {1000e6}, {11600e6}}) -- MoE [N/m²]
@@ -41,6 +44,9 @@ function bauteilversuchBSH()
 -- Bauteilversuch Hofer/Fuchs
 	l = 7.2
 	b = 0.5
+	label = {"Beton",
+				"Velox",
+				"Holz"}
 	hb = tmath.Matrix({{6e-2, b}, {15e-2, b}, {11.8e-2, b}})
 	-- - Material
 	moe = tmath.Matrix({{19560e6}, {1000e6}, {11600e6}}) -- MoE [N/m²]
@@ -60,6 +66,12 @@ end
 function bauteilversuchBSP()
 	l = 7.2
 	b = 0.5
+	label = {"Beton",
+				"Velox",
+				"BSP1",
+				"BSP2",
+				"BSP3"}
+
 	hb = tmath.Matrix({{6e-2, b}, 
 										{15e-2, b}, 
 										{3.9e-2, b}, 
@@ -86,17 +98,21 @@ function bauteilversuchBSP()
 												{0},
 												{0}}) -- [N/m^2]
 -- Schrauben
--- k_ser1 einer Schraube [N/m] (aus Schubversuch):
-	k_ser1 = 2.12e7
-	n_screw = 3
-	l_screw = 1.5
-	e_y_screw = 0.25
 -- - Lasten
 	gamma_g = 1.35
 	gamma_q = 1.5
 	q = 3e3*b*gamma_q -- variable load [N/m]
 	dl_factor = gamma_g -- factor for dead load
 	Fx = nil -- single load at F[{i,0}]*l of magnitude F[{i,1}]
+end
+
+function bauteilversuchBSPmitSchrauben()
+	bauteilversuchBSP()
+-- k_ser1 einer Schraube [N/m] (aus Schubversuch):
+	k_ser1 = 2.1e7
+	e_y = 0.25
+	n_screw = 3*math.floor(b/0.25 + .5)
+	l_screw = 1.5
 end
 
 function sabine()
@@ -153,9 +169,10 @@ end
 
 -- Werte laden:
 -- bauteilversuchBSH()
--- bauteilversuchBSP()
+bauteilversuchBSP()
+-- bauteilversuchBSPmitSchrauben()
 -- dominik()
-sabine()
+-- sabine()
 
 -- ==== Berechnung und Ausgabe =================
 layers = hb:AppendCols(moe)
@@ -165,11 +182,12 @@ kser = tmath.Matrix(layers:Rows() - 1, 2)
 kser:SetZero()
 kser = kser:AppendCols(k_ser)
 -- zur Kontrolle:
-print(string.format("EA_a = %.0f N\nGA_a = %.0f N\nEI_a = %.0f N*m²", stiffnessBeamA(layers)))
-print(string.format("EA_b = %.0f N\nGA_b = %.0f N\nEI_b = %.0f N*m²\n", stiffnessBeamB(layers, kser)))
+-- print(string.format("EA_a = %.0f N\nGA_a = %.0f N\nEI_a = %.0f N*m²", stiffnessBeamA(layers)))
+-- print(string.format("EA_b = %.0f N\nGA_b = %.0f N\nEI_b = %.0f N*m²\n", stiffnessBeamB(layers, kser)))
 
 SA_init(l)
 setLayers(layers, kser)
+setScrews(k_ser1, l_screw, n_screw, 2)
 setLoads(dl_factor, q)
 calcStructure()
 u_x, u_max = getDisplacements()
