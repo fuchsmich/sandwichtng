@@ -143,6 +143,7 @@ function sectionPropertiesBeamA()
   return tmath.Matrix({{A_x, A_y, A_z, I_x, I_y, I_z}})
 end
 
+
 function stiffnessBeamB(layers, joints)
 
   local n = layers:Rows()
@@ -172,6 +173,7 @@ function stiffnessBeamB(layers, joints)
   return 0, s, ei
 end
 
+
 function sectionPropertiesBeamB(screws)
 --   calculates properties for section B
   local layers = SA_layers
@@ -197,10 +199,18 @@ function getDisplacements()
   local u_max, z ,s = SA_U:MaxCoeff()
 	
 	-- u(x)
-	u_x = tmath.Matrix(SA_noe + 1, 1)
+	local u_x = tmath.Matrix(SA_noe + 1, 1)
 	u_x:SetLinearRows(0, SA_l)
 	u_x = u_x:AppendCols(SA_U)
   return u_x, u_max
+end
+
+function getShearForces()
+	Qz = tmath.Matrix(SA_noe + 1, 1)
+	Qz:SetLinearRows(0, SA_l)
+	Qz:AppendCols(SA_elementForcesA:GetCols(1))
+	Qz:AppendCols(SA_elementForcesB:GetCols(1))
+	return Qz
 end
 
 function getStresses(x)
@@ -353,5 +363,3 @@ function calcStructure()
 	elementList:SetLinearCols(SA_noe, 2*SA_noe-1)
   SA_elementForcesB = struct:ElementForce(elementList):GetCols(0,12) 
 end
-
-

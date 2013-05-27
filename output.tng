@@ -69,8 +69,15 @@ function plotShearStress(sig, layers)
 			zz[j] = (z_s[i] + h[i]/2 - j*dz)*1000
 			tauzz[j] = tauz[0] + b*j*dz + a*(j*dz)^2
 		end
-		sstressGraph:Plot(tauzz,zz, 2, "tau["..(i+1).."]")
+		sstressGraph:Plot(tauzz, zz, 2, "tau["..(i+1).."]")
 	end
+end
+
+function plotShearForce(Qz)
+	shearGraph = graph.Graph("Shear Force", "Bright")
+	shearGraph:AxisLabels("x [m]", "Q [N]")
+	shearGraph:Plot(Qz:GetCols(0), Qz:GetCols(1), 1, "Q_z,A")
+	shearGraph:Plot(Qz:GetCols(0), Qz:GetCols(2), 2, "Q_z,B")
 end
 
 function drawResults(sig)

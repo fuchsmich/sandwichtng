@@ -201,6 +201,8 @@ tau = getStresses(0)
 -- print(tau/1e6)
 plotShearStress(tau, layers)
 
+plotShearForce(getShearForces())
+
 printResults(label, u_max, sig, tau)
 
 -- printResults(u_max, sig)
