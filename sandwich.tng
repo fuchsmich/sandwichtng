@@ -6,21 +6,19 @@
 * Spannungen mit gamma_d
 * Nachweise
 		ULS
+		*Schubabdeckung
 		*Normalspannung Holz
 		*Biegespannung Holz
 		*Rollschubspannung Holz
 		*Schubspannung Velox (falls keine Schrauben bzw. im Bereich wo keine Schrauben)
 		*Belastung SChrauben
-		*Schubabdeckung
 		SLS
 		*Langzeitdurchbiegung
-* Querkraft/Momentenverlauf
+* Momentenverlauf
 @DID
+* Querkraft
 * output (print und plot) in output.tng
 ]]--
-
-dofile("fem.tng")
-dofile("output.tng")
 
 function kirchmayer()
 -- Großversuche Kirchmayer=======================================================
@@ -40,84 +38,6 @@ function kirchmayer()
 	q = 0 -- variable load [N/m²]
 	dl_factor = 0 -- factor for dead load
 	Fx = tmath.Matrix({{0.5, 10e3}}) -- single load at F[{i,0}]*l of magnitude F[{i,1}]
-end
-
-function bauteilversuchBSH()
--- Bauteilversuch Hofer/Fuchs
-	l = 7.2
-	b = 0.5
-	label = {"Beton",
-				"Velox",
-				"Holz"}
-	hb = tmath.Matrix({{6e-2, b}, {15e-2, b}, {11.8e-2, b}})
-	-- - Material
-	moe = tmath.Matrix({{19560e6}, {1000e6}, {11600e6}}) -- MoE [N/m²]
-	mos = tmath.Matrix({{moe[0]/2/(1+0.2)}, {15e6}, {690e6}}) --MoS [N/m²]
-	rho = tmath.Matrix({{2400}, {750}, {500}}) --density [kg/m³]
-	k_ser = tmath.Matrix({{0},{0}}) --Federstefigkeit der Fuge (0 = oo)
-	-- - Lasten
-	gamma_g = 1
-	gamma_q = 1
-	q = 3e3*b*gamma_q -- variable load [N/m]
-	dl_factor = gamma_g -- factor for dead load
-	-- Fx = tmath.Matrix({{0.25, q*l/2}, 
-										 -- {0.75, q*l/2}}) -- single load at F[{i,0}]*l of magnitude F[{i,1}]
-	-- q = 0
-end
-
-function bauteilversuchBSP()
-	l = 7.2
-	b = 0.5
-	label = {"Beton",
-				"Velox",
-				"BSP1",
-				"BSP2",
-				"BSP3"}
-
-	hb = tmath.Matrix({{6e-2, b}, 
-										{15e-2, b}, 
-										{3.9e-2, b}, 
-										{4e-2, b}, 
-										{3.9e-2, b}})
-	-- - Material
-	moe = tmath.Matrix({{19560e6}, 
-											{1000e6}, 
-											{11600e6}, 
-											{370e6}, 
-											{11600e6}}) -- MoE [N/m²]
-	mos = tmath.Matrix({{moe[0]/2/(1+0.2)}, 
-											{15e6}, 
-											{690e6}, 
-											{50e6}, 
-											{690e6}}) --MoS [N/m²]
-	rho = tmath.Matrix({{2400}, 
-											{750}, 
-											{500}, 
-											{500}, 
-											{500}}) --density [kg/m³]
-	k_ser = tmath.Matrix({{0},
-												{0},
-												{0},
-												{0}}) -- [N/m^2]
--- Schrauben
--- - Lasten
-	gamma_g = 1.35
-	gamma_q = 1.5
-	-- q = 3e3*b*gamma_q -- variable load [N/m]
-	q = 3e3*b -- variable load [N/m]
-	dl_factor = 1 -- factor for dead load
-	-- F = 20e3
-	F = 0
-	Fx = tmath.Matrix({{0.25,F},{0.75,F}}) -- single load at F[{i,0}]*l of magnitude F[{i,1}]
-end
-
-function bauteilversuchBSPmitSchrauben()
-	bauteilversuchBSP()
--- k_ser1 einer Schraube [N/m] (aus Schubversuch):
-	k_ser1 = 2.1e7
-	e_y = 0.25
-	n_screw = 3*math.floor(b/0.25 + .5)
-	l_screw = 1.5
 end
 
 function sabine()
@@ -175,11 +95,14 @@ end
 -- Werte laden:
 -- bauteilversuchBSH()
 -- bauteilversuchBSP()
-bauteilversuchBSPmitSchrauben()
+-- bauteilversuchBSPmitSchrauben()
 -- dominik()
 -- sabine()
 
 -- ==== Berechnung und Ausgabe =================
+dofile("fem.tng")
+dofile("output.tng")
+
 layers = hb:AppendCols(moe)
 layers = layers:AppendCols(mos)
 layers = layers:AppendCols(rho)
@@ -210,10 +133,8 @@ plotShearForce(getShearForces())
 
 printResults(label, u_max, sig, tau)
 
--- printResults(u_max, sig)
--- plotDisplacement(u_x)
--- plotNormalStress(getStresses(0.5), layers)
--- drawResults(u_max, sig)
+
+
 -- korrekte Loesung... für Versuchsbalken??
 -- 
 -- u_max	0.011130073811788
