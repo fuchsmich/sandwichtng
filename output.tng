@@ -29,7 +29,7 @@ function plotNormalStress(sig, layers)
 	local z_s = z__s(hb, moe)*(-1)
 	local z = tmath.Matrix(4)
 	local sigz = tmath.Matrix(4)
-	local nstressGraph = graph.Graph("Normal Stress", "Bright")
+	nstressGraph = graph.Graph("Normal Stress", "Bright")
 	nstressGraph:AxisLabels("stress [N/mm²]", "z_s [mm]")
 	for i = 0, h:Rows()-1 do
 		z[0] = (z_s[i] + h[i]/2)*1000
@@ -49,7 +49,7 @@ function plotShearStress(sig, layers)
 	local h, hb, moe = layers:GetCols(0), layers:GetCols(0,2), layers:GetCols(2)
 	local z_s = z__s(hb, moe)*(-1)
 	
-	local sstressGraph=graph.Graph("Shear Stress", "Bright")
+	sstressGraph=graph.Graph("Shear Stress", "Bright")
 	sstressGraph:AxisLabels("stress [N/mm²]", "z_s [mm]")
 	local z = tmath.Matrix(3)
 	local tauz = tmath.Matrix(3)
@@ -73,11 +73,17 @@ function plotShearStress(sig, layers)
 	end
 end
 
-function plotShearForce(Qz)
-	shearGraph = graph.Graph("Shear Force", "Bright")
+function plotShearForceX(Qz)
+	shearGraph = graph.Graph("Shear Force Path along X", "Bright")
 	shearGraph:AxisLabels("x [m]", "Q [N]")
 	shearGraph:Plot(Qz:GetCols(0), Qz:GetCols(1), 1, "Q_z,A")
 	shearGraph:Plot(Qz:GetCols(0), Qz:GetCols(2), 2, "Q_z,B")
+end
+
+function plotMaxShearStressX(tau_max)
+	local shearGraph = graph.Graph("Max. Shear Stress Path along X", "Bright")
+	shearGraph:AxisLabels("x [m]", "tau [N/mm²]")
+	shearGraph:Plot(tau_max:GetCols(0), tau_max:GetCols(1)*1e-6, 1, "tau_max")
 end
 
 function drawResults(sig)

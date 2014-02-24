@@ -40,21 +40,21 @@ function bauteilversuchBSP()
 	q = 3e3*b -- variable load [N/m]
 	dl_factor = 1 -- factor for dead load
 	-- F = 20e3
-	F = 0
-	Fx = tmath.Matrix({{0.25,F},{0.75,F}}) -- single load at F[{i,0}]*l of magnitude F[{i,1}]
+	-- F = 0
+	-- Fx = tmath.Matrix({{0.25,F},{0.75,F}}) -- single load at F[{i,0}]*l of magnitude F[{i,1}]
 end
 
 function bauteilversuchBSPmitSchrauben()
 	bauteilversuchBSP()
 
-	k_ser1 = 2.1e8 -- k_ser1 einer Schraube [N/m] (aus Schubversuch):
+	k_ser1 = 2.1e8 -- k_ser1 einer Schraube [N/m]
 	e_y = 0.25  -- Abstand der Schraubenreihen
-	n_screw = 3*math.floor(b/0.25 + .5) -- Anzahl der Schrauben
+	n_screw = 3*math.floor(b/0.25 + .5) -- Anzahl der Schrauben in einer Reihe
 	l_screw = 1.5 -- Abstand erste - letzte Schraube
-	q = 0
-	dl_factor = 0
-	F = 10.9e3
-	Fx = tmath.Matrix({{0.25,F},{0.75,F}}) -- single load at F[{i,0}]*l of magnitude F[{i,1}]
+	q = 3e3*b
+	dl_factor = 1
+	-- F = 10.9e3
+	-- Fx = tmath.Matrix({{0.25,F},{0.75,F}}) -- single load at F[{i,0}]*l of magnitude F[{i,1}]
 end
 
 -- Werte laden:

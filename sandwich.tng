@@ -2,7 +2,7 @@
 @TODO:
 * grafischen input wiederherstellen (input.tng)
 * Rollschub tau ~ 1,1 N/mm² ???
-* Langezeit Durchbiegung
+* Langzeit Durchbiegung
 * Spannungen mit gamma_d
 * Nachweise
 		ULS
@@ -16,6 +16,7 @@
 		*Langzeitdurchbiegung
 * Momentenverlauf
 @DID
+* Verlauf der max. Schubspannung
 * Querkraft
 * output (print und plot) in output.tng
 ]]--
@@ -92,13 +93,6 @@ function dominik()
 	Fx = nil
 end
 
--- Werte laden:
--- bauteilversuchBSH()
--- bauteilversuchBSP()
--- bauteilversuchBSPmitSchrauben()
--- dominik()
--- sabine()
-
 -- ==== Berechnung und Ausgabe =================
 dofile("fem.tng")
 dofile("output.tng")
@@ -129,9 +123,11 @@ tau = getStresses(0)
 -- print(tau/1e6)
 plotShearStress(tau, layers)
 
-plotShearForce(getShearForces())
+plotShearForceX(getShearForces())
+plotMaxShearStressX(getMaxShearStressPathX(2))
 
 printResults(label, u_max, sig, tau)
+
 
 
 

@@ -1,47 +1,40 @@
 function bauteilversuchBSP()
 	l = 7.2
 	b = 0.5
-	label = {"Beton",
-				"Velox",
+	label = {
 				"BSP1",
 				"BSP2",
 				"BSP3"}
 
-	hb = tmath.Matrix({{6e-2, b}, 
-										{15e-2, b}, 
+	hb = tmath.Matrix({ 
 										{3.9e-2, b}, 
 										{4e-2, b}, 
 										{3.9e-2, b}})
 	-- - Material
-	moe = tmath.Matrix({{19560e6}, 
-											{1000e6}, 
+	moe = tmath.Matrix({ 
 											{11600e6}, 
 											{370e6}, 
 											{11600e6}}) -- MoE [N/m²]
-	mos = tmath.Matrix({{moe[0]/2/(1+0.2)}, 
-											{1000e6}, 
+	mos = tmath.Matrix({ 
 											{690e6}, 
 											{50e6}, 
 											{690e6}}) --MoS [N/m²]
-	rho = tmath.Matrix({{2400}, 
-											{750}, 
+	rho = tmath.Matrix({ 
 											{500}, 
 											{500}, 
 											{500}}) --density [kg/m³]
-	k_ser = tmath.Matrix({{0},
-												{0},
+	k_ser = tmath.Matrix({
 												{0},
 												{0}}) -- [N/m^2]
 -- Schrauben
 -- - Lasten
-	-- gamma_g = 1.35
-	-- gamma_q = 1.5
+	gamma_g = 1.35
+	gamma_q = 1.5
 	-- q = 3e3*b*gamma_q -- variable load [N/m]
-	-- q = 3e3*b -- variable load [N/m]
-	dl_factor = 0 -- factor for dead load
-	q = 0;
-	F = 8e3
-	-- F = 0
+	q = 3e3*b -- variable load [N/m]
+	dl_factor = 1 -- factor for dead load
+	-- F = 20e3
+	F = 0
 	Fx = tmath.Matrix({{0.25,F},{0.75,F}}) -- single load at F[{i,0}]*l of magnitude F[{i,1}]
 end
 
@@ -60,3 +53,5 @@ bauteilversuchBSP()
 -- bauteilversuchBSPmitSchrauben()
 
 dofile("sandwich.tng")
+print(stiffnessBeamA(SA_layers, SA_joints))
+print(stiffnessBeamB(SA_layers, SA_joints))

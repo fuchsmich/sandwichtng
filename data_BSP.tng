@@ -1,0 +1,52 @@
+function BSP()
+	l = 5.5
+	b = 1.0
+	label = {"BSP1",
+				"BSP2",
+				"BSP3",
+				"BSP4",
+				"BSP5"}
+
+	hb = tmath.Matrix({ 
+										{27e-3, b}, 
+										{27e-3, b}, 
+										{27e-3, b}, 
+										{27e-3, b}, 
+										{27e-3, b}
+										})
+	-- - Material
+	moe = tmath.Matrix({{11000e6}, 
+											{1}, 
+											{11000e6}, 
+											{1}, 
+											{11600e6}}) -- MoE [N/m²]
+	mos = tmath.Matrix({{690e6}, 
+											{69e6}, 
+											{690e6}, 
+											{69e6}, 
+											{690e6}}) --MoS [N/m²]
+	rho = tmath.Matrix({{500}, 
+											{500}, 
+											{500}, 
+											{500}, 
+											{500}}) --density [kg/m³]
+	k_ser = tmath.Matrix({{0},
+												{0},
+												{0},
+												{0}}) -- [N/m^2]
+-- Schrauben
+-- - Lasten
+	-- gamma_g = 1.35
+	-- gamma_q = 1.5
+	q = 5.5e3 -- variable load [N/m]
+	-- q = 3e3*b -- variable load [N/m]
+	dl_factor = 0 -- factor for dead load
+	-- F = 20e3
+	-- F = 0
+	-- Fx = tmath.Matrix({{0.25,F},{0.75,F}}) -- single load at F[{i,0}]*l of magnitude F[{i,1}]
+end
+
+-- Werte laden:
+BSP()
+
+dofile("sandwich.tng")

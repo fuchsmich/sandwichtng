@@ -3,8 +3,6 @@ beam system for shear analogy method
 (c) 2012 Michael Fuchs michfu@gmx.at
 
 @TODO:
-* schubspannungen für fugen nochmal prüfen...
-* Spannungen gleich für alle Elemente brechnen??
 
 @DID:
 * G, kser only for certain sections
@@ -13,6 +11,7 @@ beam system for shear analogy method
 * y => z für SA
 * hb, moe, mos, rho in ein array
 * fugensteifigkeit für fugen (k_ser?)
+* Spannungen gleich für alle Elemente brechnen??
 --]]
 
 dofile("crosssection.tng")
@@ -75,7 +74,7 @@ function setScrews(k_ser_scr, l_scr, n_scr, numLay)
 	if k_ser_scr ~= nil then
 		SA_screws = true
 		SA_mos_scr = k_ser_scr*n_scr*layers[{numLay-1,0}]/(layers[{numLay-1,1}]*l_scr)
-		print("Schubmodul f Schrauben", SA_mos_scr, SA_mos_scr/SA_layers[{numLay-1,3}])
+		-- print("Schubmodul f Schrauben", SA_mos_scr, SA_mos_scr/SA_layers[{numLay-1,3}])
 		SA_numLay_scr = numLay
 		SA_l_scr = l_scr
 		SA_numEl_scr = math.floor(l_scr/(SA_l/SA_noe) + .5)
@@ -128,6 +127,7 @@ function stiffnessBeamA(layers)
   local eaa = tmath.Sum(moe:CW()*A(hb))
   local gaa = tmath.Sum(mos:CW()*A(hb))
   local eia = tmath.Sum((moe:CW()*b):CW()*(h:CW()^3))/12
+	-- print(eia)
   return eaa, gaa, eia
 end
 
@@ -214,14 +214,10 @@ function getShearForces()
 	return Qz
 end
 
-function getShearStresses()
-	local tauz = tmath.Matrix(SA_noe, 1)
-	tauz:SetLinearRows(0, SA_l)
-	local QzA = SA_elementForcesA:GetCols(1)
-	local QzB = SA_elementForcesB:GetCols(1)
-	
-	
-	return tauz
+function getMaxShearStressPathX(layNum)
+	local tau_max = SA_sig:GetCols(0)
+	tau_max = tau_max:AppendCols(SA_sig:GetCols((layNum-1)*6 + 6))
+	return tau_max
 end
 
 function getStresses(x)
@@ -279,6 +275,74 @@ function getStresses(x)
 	return sig 
 end
 
+function calcStresses()
+  local nol = SA_layers:Rows()
+  local h, b, moe, mos = SA_layers:GetCols(0), SA_layers:GetCols(1), SA_layers:GetCols(2), SA_layers:GetCols(3)
+  local hb = h:AppendCols(b)
+  
+	-- local nodeNr = math.floor(x*SA_noe + .5)
+	local M_y_A = -SA_elementForcesA:GetCols(5)
+	local M_y_B = -SA_elementForcesB:GetCols(5)
+  local Q_z_A = SA_elementForcesA:GetCols(1)
+  local Q_z_B = SA_elementForcesB:GetCols(1)
+	
+  local eaa, gaa, eia = stiffnessBeamA(SA_layers)
+  local eab, gab, eib = stiffnessBeamB(SA_layers, SA_joints)
+  local z_s = z__s(hb, moe)
+	-- print(z_s)
+	local sig = tmath.Matrix(SA_noe, 1)
+	--set x values
+	sig:SetLinearRows(0, SA_l)
+  -- local sig_m, sig_n, ta, tb, 
+	local t0 = tmath.Matrix(SA_noe)
+	t0:SetZero()
+	-- local sig_m, sig_n, ta, tb
+	
+  for i = 0, nol-1 do
+    local sig_m = M_y_A*(moe[i]/eia*h[i]/2)
+    local sig_n = M_y_B*(moe[i]/eib*z_s[i])
+    local sig_o = sig_n - sig_m
+    local sig_u = sig_n + sig_m
+		-- t0 = t0/b[i]
+    local ta = -Q_z_A*(moe[i]/eia*(-h[i]^2/8)*b[i])
+    local tb = -Q_z_B*(moe[i]/eib*z_s[i]*(h[i]/2 + h[i]/2)*b[i])
+		-- tau_o 2
+    local tau_o = t0/b[i]
+		-- tau_m 3
+    local tau_m = (ta + tb/2 + t0)/b[i]
+		-- tau_u 4
+    local tau_u = (tb + t0)/b[i]
+	-- Ermittlung tau_max
+	-- Parameter für Parabel
+		local az = (tau_o + tau_u - tau_m*2)/(2*(h[i]/2)^2)
+		local bz = (tau_u - tau_o)/h[i]
+		local cz = tau_m
+		-- Lage tau_max
+		local z_tmax = -(bz:CW()/(az*2))
+		-- print("z_tmax", z_tmax)
+		-- print("h[i]/2", h[i]/2)
+		local tau_max = tmath.Matrix(SA_noe)
+		for j = 0, SA_noe-1 do
+			if math.abs(z_tmax[j]) > h[i]/2 then
+			-- ???
+				tau_max[j] = math.max(math.abs(tau_o[j]), math.abs(tau_u[j]))
+			else
+				tau_max[j] = -(Q_z_A[j])*moe[i]/eia*(z_tmax[j]^2/2 - h[i]^2/8) 
+					- (Q_z_B[j])*moe[i]/eib*z_s[i]*(z_tmax[j] + h[i]/2) 
+					+ t0[j]/b[i]
+			end
+		end
+		t0 = tb + t0 -- Schubfluss in der Fuge
+		sig = sig:AppendCols(sig_o)
+		sig = sig:AppendCols(sig_u)
+		sig = sig:AppendCols(tau_o)
+		sig = sig:AppendCols(tau_m)
+		sig = sig:AppendCols(tau_u)
+		sig = sig:AppendCols(tau_max)
+  end
+	SA_sig = sig
+end
+
 -- -------------------------------- assemble it all together and calculate the system
 function calcStructure()
 -- solve system
@@ -306,13 +370,13 @@ function calcStructure()
 	
 	-- beam B
 	local ss = struct:AddSection(12, "BEAM3D", 0)
-	print(sectionPropertiesBeamB())
+	-- print(sectionPropertiesBeamB())
 	ss:SetData(sectionPropertiesBeamB())
 	
 	--screws
 	if SA_screws then
 		local ss = struct:AddSection(13, "BEAM3D", 0)
-		print(sectionPropertiesBeamB(true))
+		-- print(sectionPropertiesBeamB(true))
 		ss:SetData(sectionPropertiesBeamB(true))
   end
 	-- add Elements
@@ -372,5 +436,7 @@ function calcStructure()
 -- Achtung: noch ein Bug, hier kommen 36 Spalten heraus, aber nur die ersten 12 sind sinvoll....
   SA_elementForcesA = struct:ElementForce(elementList):GetCols(0,12) 
 	elementList:SetLinearCols(SA_noe, 2*SA_noe-1)
-  SA_elementForcesB = struct:ElementForce(elementList):GetCols(0,12) 
+  SA_elementForcesB = struct:ElementForce(elementList):GetCols(0,12)
+	calcStresses()
+	
 end
