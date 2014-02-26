@@ -1,19 +1,22 @@
 function printResults(label, u, sig, tau)
-	print("Ergebnisse:\n")
-    print(string.format("u_max = %.3f mm", u*1000))
-    -- print("sig: ", sig/1e6)
+	print("======== Ergebnisse: ==========\n")
+	print("== maximale Durchbiegung: ==")
+	print(string.format("u_max = %.3f mm", u*1000))
+	-- print("sig: ", sig/1e6)
+	print("\n== Normalspannungen in Feldmitte ==")
 	for i = 0, hb:Rows()-1 do
-	  print("\n"..label[i+1]..":")
+	  print(label[i+1]..":")
 		print("Normalspannungen in Feldmitte:")
 		print(string.format("sig_"..(i+1)..",o = %.3f N/mm²", sig[{i,0}]/1e6))
 		print(string.format("sig_"..(i+1)..",u = %.3f N/mm²", sig[{i,1}]/1e6))
-		print("Schubspannungen beim Auflager:")
-		print(string.format("tau_"..(i+1)..",o = %.3f N/mm²", tau[{i,2}]/1e6))
-		print(string.format("tau_"..(i+1)..",m = %.3f N/mm²", tau[{i,3}]/1e6))
-		print(string.format("tau_"..(i+1)..",u = %.3f N/mm²", tau[{i,4}]/1e6))
-		print(string.format("tau_"..(i+1)..",max = %.3f N/mm²", tau[{i,5}]/1e6))
 	end
+	print("\n== Schubspannungen beim Auflager ==")
 	for i = 0, hb:Rows()-1 do
+	  print(label[i+1]..":")
+		-- print(string.format("tau_"..(i+1)..",o = %.3f N/mm²", tau[{i,2}]/1e6))
+		-- print(string.format("tau_"..(i+1)..",m = %.3f N/mm²", tau[{i,3}]/1e6))
+		-- print(string.format("tau_"..(i+1)..",u = %.3f N/mm²", tau[{i,4}]/1e6))
+		print(string.format("tau_"..(i+1)..",max = %.3f N/mm²", tau[{i,5}]/1e6))
 	end
 end
 
