@@ -419,7 +419,7 @@ function calcStructure()
   local F = struct:ToDofDisplacements(F1)
 
 -- solve the system
-  local U = K:SolveLU(F)
+  local U = K:Solve(F)
 	SA_calcSystem = true
 
 	-- apply deformations to structure (drawing)
