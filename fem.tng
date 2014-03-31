@@ -135,7 +135,7 @@ function sectionPropertiesBeamA()
 --   calculates properties for section A
   local eaa, gaa, eia = stiffnessBeamA(SA_layers) --sollte eigentlich in eigene section C
 -- x,y,z in CSYS from FEM
-  local A_x = eaa/SA_calProp[0]*0.01  --can be 0
+  local A_x = eaa/SA_calProp[0]  --can be 0
   local A_y = gaa/SA_calProp[2] --can be oo
   local A_z = A_y
   local I_z = eia/SA_calProp[0] --important part

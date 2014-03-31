@@ -15,9 +15,9 @@ function BSP()
 										{27e-3, b}
 										})
 	-- - Material
-	moe = tmath.Matrix({{11000e6}, 
+	moe = tmath.Matrix({{11600e6}, 
 											{1}, 
-											{11000e6}, 
+											{11600e6}, 
 											{1}, 
 											{11600e6}}) -- MoE [N/m²]
 	mos = tmath.Matrix({{690e6}, 
@@ -50,3 +50,7 @@ end
 BSP()
 
 dofile("sandwich.tng")
+
+print("Debug")
+print(stiffnessBeamA(SA_layers))
+print(sectionPropertiesBeamA())
