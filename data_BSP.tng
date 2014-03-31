@@ -1,6 +1,6 @@
 function BSP()
-	l = 5.5
-	b = 1.0
+	l = 5500
+	b = 1000
 	label = {"BSP1",
 				"BSP2",
 				"BSP3",
@@ -8,37 +8,37 @@ function BSP()
 				"BSP5"}
 
 	hb = tmath.Matrix({ 
-										{27e-3, b}, 
-										{27e-3, b}, 
-										{27e-3, b}, 
-										{27e-3, b}, 
-										{27e-3, b}
+										{27, b}, 
+										{27, b}, 
+										{27, b}, 
+										{27, b}, 
+										{27, b}
 										})
 	-- - Material
-	moe = tmath.Matrix({{11600e6}, 
+	moe = tmath.Matrix({{11600}, 
 											{1}, 
-											{11600e6}, 
+											{11600}, 
 											{1}, 
-											{11600e6}}) -- MoE [N/m²]
-	mos = tmath.Matrix({{690e6}, 
-											{69e6}, 
-											{690e6}, 
-											{69e6}, 
-											{690e6}}) --MoS [N/m²]
+											{11600}}) -- MoE [N/mm²]
+	mos = tmath.Matrix({{690}, 
+											{69}, 
+											{690}, 
+											{69}, 
+											{690}}) --MoS [N/mm²]
 	rho = tmath.Matrix({{500}, 
 											{500}, 
 											{500}, 
 											{500}, 
-											{500}}) --density [kg/m³]
+											{500}}) --density [kg/mm³]
 	k_ser = tmath.Matrix({{0},
 												{0},
 												{0},
-												{0}}) -- [N/m^2]
+												{0}}) -- [N/mm^2]
 -- Schrauben
 -- - Lasten
 	-- gamma_g = 1.35
 	-- gamma_q = 1.5
-	q = 5.5e3 -- variable load [N/m]
+	q = 5.5 -- variable load [N/mm]
 	-- q = 3e3*b -- variable load [N/m]
 	dl_factor = 0 -- factor for dead load
 	-- F = 20e3
