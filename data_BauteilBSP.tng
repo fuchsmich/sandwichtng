@@ -1,4 +1,5 @@
 function bauteilversuchBSP()
+	desc = "Bauteilversuch, Einzelkräfte in Viertelpunkten"
 	l = 7.2
 	b = 0.5
 	label = {"Beton",
