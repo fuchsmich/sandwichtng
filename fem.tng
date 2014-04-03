@@ -31,7 +31,7 @@ function SA_init(l, noe)
 	SA_refnnr = 1
 
 	-- Properties for reference material
-	local E_cal = 1e10 -- [N/m²]
+	local E_cal = 10000 -- [N/m²]
 	local nu_cal = 0.2
 	local G_cal = E_cal/(2*(1 + nu_cal))
 	SA_calProp = tmath.Matrix({{E_cal, nu_cal, G_cal}})

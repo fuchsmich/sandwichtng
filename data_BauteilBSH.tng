@@ -1,14 +1,14 @@
 function bauteilversuchBSH()
 -- Bauteilversuch Hofer/Fuchs
-	l = 7.2
-	b = 0.5
+	l = 7200
+	b = 500
 	label = {"Beton",
 				"Velox",
 				"Holz"}
-	hb = tmath.Matrix({{6e-2, b}, {15e-2, b}, {11.8e-2, b}})
+	hb = tmath.Matrix({{60, b}, {150, b}, {118, b}})
 	-- - Material
-	moe = tmath.Matrix({{19560e6}, {1000e6}, {11600e6}}) -- MoE [N/m²]
-	mos = tmath.Matrix({{moe[0]/2/(1+0.2)}, {70e6}, {690e6}}) --MoS [N/m²]
+	moe = tmath.Matrix({{19560}, {1000}, {11600}}) -- MoE [N/m²]
+	mos = tmath.Matrix({{moe[0]/2/(1+0.2)}, {70}, {690}}) --MoS [N/m²]
 	rho = tmath.Matrix({{2400}, {750}, {500}}) --density [kg/m³]
 	k_ser = tmath.Matrix({{0},{0}}) --Federstefigkeit der Fuge (0 = oo)
 	-- - Lasten
@@ -27,6 +27,7 @@ bauteilversuchBSH()
 -- bauteilversuchBSPmitSchrauben()
 
 dofile("sandwich.tng")
+print(stiffnessBeamA(layers))
 print(sectionPropertiesBeamA())
 print(sectionPropertiesBeamB())
 print(z__s(hb,moe))
